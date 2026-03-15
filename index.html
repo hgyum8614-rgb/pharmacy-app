@@ -1396,7 +1396,7 @@ function doLogout() {
     if (isIOS) {
       header.style.paddingTop = isSafari
         ? 'max(52px, calc(env(safe-area-inset-top, 44px) + 10px))'
-        : 'calc(env(safe-area-inset-top, 20px) + 10px)';
+        : '14px';
     } else {
       header.style.paddingTop = '14px';
     }
@@ -1835,10 +1835,10 @@ async function initApp() {
     var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     var isIOS    = /iPad|iPhone|iPod/.test(navigator.userAgent);
     if (isIOS) {
-      // 아이폰 사파리 + 크롬 모두 safe area 적용
+      // 아이폰 사파리만 safe area 적용, 크롬은 일반 패딩
       header.style.paddingTop = isSafari
-        ? 'max(52px, calc(env(safe-area-inset-top, 44px) + 10px))'  // 사파리: 더 넉넉하게
-        : 'calc(env(safe-area-inset-top, 20px) + 10px)';            // 크롬: 표준 safe area
+        ? 'max(52px, calc(env(safe-area-inset-top, 44px) + 10px))'
+        : '14px';
     } else {
       // 안드로이드 / PC — 일반 패딩
       header.style.paddingTop = '14px';
