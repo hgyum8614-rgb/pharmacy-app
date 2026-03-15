@@ -945,10 +945,9 @@ const I18N = {
 };
 
 function getLang(country) {
-  // 로그인 화면에서 명시적으로 선택한 언어 항상 최우선
-  // (ko도 명시적 선택일 수 있으므로, country 기반보다 loginLang 우선)
-  if (loginLang === 'ja' || loginLang === 'zh' || loginLang === 'en') return loginLang;
-  // loginLang이 'ko'이거나 미설정이면 → 국가 기반으로 결정
+  // 로그인 화면에서 명시적으로 선택한 언어 항상 최우선 (ko 포함)
+  if (loginLang) return loginLang;
+  // loginLang 미설정이면 국가 기반으로 결정
   if (!country) return 'ko';
   if (['Japan','Taiwan','Hong Kong'].includes(country)) return 'ja';
   if (['China'].includes(country)) return 'zh';
