@@ -349,6 +349,20 @@ input[readonly]{background:var(--gray);color:var(--muted)}
       </div>
 
     </div>
+
+    <!-- 앱 설치 배너 (PWA 설치 안 된 경우만 표시) -->
+    <div id="install-banner" style="display:none;width:100%;max-width:400px;margin-top:16px">
+      <button id="install-btn" onclick="handleInstall()" style="width:100%;padding:14px 20px;background:var(--white);border:1.5px solid var(--blue);border-radius:var(--radius-sm);color:var(--blue);font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+        <span style="font-size:20px">📲</span>
+        <span id="install-btn-text">앱으로 설치하기</span>
+      </button>
+      <div id="install-hint" style="display:none;margin-top:10px;padding:12px 14px;background:var(--white);border-radius:var(--radius-sm);font-size:12px;color:var(--muted);line-height:1.6;text-align:center">
+        <div style="font-size:18px;margin-bottom:6px">🍎</div>
+        <div>하단 <strong style="color:var(--text)">공유 버튼(□↑)</strong>을 탭한 후</div>
+        <div><strong style="color:var(--blue)">"홈 화면에 추가"</strong> 를 선택하세요</div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -1076,6 +1090,12 @@ function setLoginLang(lang, el) {
   document.getElementById('l-pw').placeholder     = pwPh[lang]    || '••••••••';
   document.getElementById('s-email').placeholder  = emailPh[lang] || 'email@example.com';
   document.getElementById('s-link').placeholder   = linkPh[lang]  || 'https://';
+  // 설치 배너 텍스트도 언어에 맞게 업데이트
+  var btnText = document.getElementById('install-btn-text');
+  if (btnText) {
+    var labels = {ko:'앱으로 설치하기', en:'Install App', ja:'アプリをインストール', zh:'安装应用'};
+    btnText.textContent = labels[lang] || labels.ko;
+  }
 }
 
 // ── Safe Area 측정 + 헤더 패딩 적용 ──────────────────────────
@@ -1408,6 +1428,8 @@ function initLoginScreen() {
     // 세션 없으면 한국어 로그인 화면 표시
     var koBtn = document.querySelector('.lang-btn.active');
     if (koBtn) setLoginLang('ko', koBtn);
+    // 앱 설치 배너 초기화
+    initInstallBanner();
   } catch(e) { console.error('initLoginScreen error:', e); }
 }
 
@@ -2909,6 +2931,78 @@ async function saveSettings() {
     _transCache = {};
     showToast('설정 저장 완료', 'ok');
   } finally { load(false); }
+}
+
+// ── 앱 설치 (PWA) ─────────────────────────────────────────────
+var _installPrompt = null;
+
+// 크롬/안드로이드: 설치 프롬프트 이벤트 캐시
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  _installPrompt = e;
+  showInstallBanner('chrome');
+});
+
+// 이미 설치된 경우 배너 숨김
+window.addEventListener('appinstalled', function() {
+  hideInstallBanner();
+});
+
+function isPWAInstalled() {
+  return window.navigator.standalone === true ||
+         window.matchMedia('(display-mode: standalone)').matches;
+}
+
+function showInstallBanner(type) {
+  if (isPWAInstalled()) return; // 이미 설치됨 → 숨김
+  var banner = document.getElementById('install-banner');
+  var btnText = document.getElementById('install-btn-text');
+  if (!banner) return;
+  // 언어별 텍스트
+  var lang = loginLang || 'ko';
+  var labels = {
+    ko: '앱으로 설치하기',
+    en: 'Install App',
+    ja: 'アプリをインストール',
+    zh: '安装应用'
+  };
+  if (btnText) btnText.textContent = labels[lang] || labels.ko;
+  banner.style.display = 'block';
+  // 사파리: 힌트 표시
+  if (type === 'safari') {
+    var hint = document.getElementById('install-hint');
+    var btn  = document.getElementById('install-btn');
+    if (hint) hint.style.display = 'block';
+    if (btn)  btn.style.display  = 'none'; // 사파리는 버튼 대신 힌트만
+  }
+}
+
+function hideInstallBanner() {
+  var banner = document.getElementById('install-banner');
+  if (banner) banner.style.display = 'none';
+}
+
+async function handleInstall() {
+  if (_installPrompt) {
+    // 크롬/안드로이드: 원클릭 설치
+    _installPrompt.prompt();
+    var result = await _installPrompt.userChoice;
+    if (result.outcome === 'accepted') {
+      hideInstallBanner();
+      _installPrompt = null;
+    }
+  }
+}
+
+function initInstallBanner() {
+  if (isPWAInstalled()) return; // PWA 모드면 배너 불필요
+  var isIOS    = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  if (isIOS && isSafari) {
+    // 사파리: 힌트 배너 표시
+    showInstallBanner('safari');
+  }
+  // 크롬: beforeinstallprompt 이벤트가 오면 자동으로 showInstallBanner('chrome') 호출됨
 }
 
 // ── 유틸 ──────────────────────────────────────────────────────
