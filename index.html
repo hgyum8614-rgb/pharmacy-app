@@ -1237,7 +1237,10 @@ function applyTranslationsToData() {
 
 async function api(action, params = {}) {
   if (USE_FETCH) {
-    const r = await fetch(WEB_APP_URL, { method:'POST', body: JSON.stringify({action, params}) });
+    // Apps Script CORS 우회 — GET 방식으로 호출
+    var payload = encodeURIComponent(JSON.stringify({action: action, params: params}));
+    var url = WEB_APP_URL + '?payload=' + payload;
+    const r = await fetch(url, { method: 'GET', redirect: 'follow' });
     return r.json();
   }
   // google.script.run 안전 체크
