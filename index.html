@@ -548,10 +548,11 @@ input[readonly]{background:var(--gray);color:var(--muted)}
         <button onclick="mgrMonthToday()" style="padding:0 12px;height:36px;border:1px solid var(--blue);border-radius:var(--radius-sm);background:var(--white);color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0">이번달</button>
       </div>
 
-      <!-- 탭: 예약현황 / 정산관리 -->
-      <div class="auth-tabs" style="margin-bottom:12px">
-        <button class="auth-tab active" id="mgr-tab-res-btn" onclick="showMgrMainTab('res')">📋 예약 현황</button>
-        <button class="auth-tab" id="mgr-tab-settle-btn" onclick="showMgrMainTab('settle')">💰 정산 관리</button>
+      <!-- 탭: 예약현황 / 정산관리 / 리포트 -->
+      <div class="auth-tabs" style="margin-bottom:12px;grid-template-columns:1fr 1fr 1fr">
+        <button class="auth-tab active" id="mgr-tab-res-btn" onclick="showMgrMainTab('res')">📋 예약</button>
+        <button class="auth-tab" id="mgr-tab-settle-btn" onclick="showMgrMainTab('settle')">💰 정산</button>
+        <button class="auth-tab" id="mgr-tab-report-btn" onclick="showMgrMainTab('report')">📊 리포트</button>
       </div>
 
       <!-- 예약 현황 탭 -->
@@ -574,6 +575,32 @@ input[readonly]{background:var(--gray);color:var(--muted)}
         <div class="stat-grid" id="settle-stat-grid" style="margin-bottom:12px"></div>
         <!-- 정산 리스트 -->
         <div id="settle-list"><div class="empty">로딩 중...</div></div>
+      </div>
+
+      <!-- 리포트 탭 -->
+      <div id="mgr-panel-report" class="auth-panel">
+        <!-- 요약 KPI -->
+        <div class="stat-grid" id="report-kpi-grid" style="margin-bottom:12px"></div>
+        <!-- 약국별 -->
+        <div class="card" style="margin-bottom:10px">
+          <div class="card-title">🏥 약국별 방문</div>
+          <div id="report-chart-ph"></div>
+        </div>
+        <!-- 국가별 -->
+        <div class="card" style="margin-bottom:10px">
+          <div class="card-title">🌏 국가별 현황</div>
+          <div id="report-chart-country"></div>
+        </div>
+        <!-- 플랫폼별 -->
+        <div class="card" style="margin-bottom:10px">
+          <div class="card-title">📱 플랫폼별 현황</div>
+          <div id="report-chart-platform"></div>
+        </div>
+        <!-- 일별 추이 -->
+        <div class="card" style="margin-bottom:10px">
+          <div class="card-title">📅 일별 예약 추이</div>
+          <div id="report-chart-daily"></div>
+        </div>
       </div>
 
     </div>
@@ -2697,6 +2724,7 @@ function mgrMonthShift(d) {
   if (el) el.textContent = mgrMonthLabel();
   loadAllRes();
   renderMgrSettleList();
+  if (_mgrMainTab === 'report') renderMgrReport();
 }
 
 function mgrMonthToday() {
@@ -2706,6 +2734,7 @@ function mgrMonthToday() {
   if (el) el.textContent = mgrMonthLabel();
   loadAllRes();
   renderMgrSettleList();
+  if (_mgrMainTab === 'report') renderMgrReport();
 }
 
 function showMgrMainTab(tab) {
@@ -2715,6 +2744,7 @@ function showMgrMainTab(tab) {
   document.getElementById('mgr-tab-' + tab + '-btn').classList.add('active');
   document.getElementById('mgr-panel-' + tab).classList.add('active');
   if (tab === 'settle') renderMgrSettleList();
+  if (tab === 'report') renderMgrReport();
 }
 
 // 해당 월의 예약만 필터
@@ -2900,6 +2930,102 @@ async function settleAll(phName) {
     showToast(phName + ' 전체 정산완료', 'ok');
   } catch(e) { alert('오류: ' + e.message); }
   finally { load(false); }
+}
+
+// ── 리포트 ────────────────────────────────────────────────────
+function renderMgrReport() {
+  var monthly = filterByMonth(allRes);
+
+  // ── KPI 카드 ────────────────────────────────────────────────
+  var total    = monthly.length;
+  var visited  = monthly.filter(function(r){ return r['상태']==='방문완료'; }).length;
+  var noshow   = monthly.filter(function(r){ return r['상태']==='노쇼'; }).length;
+  var rate     = total > 0 ? Math.round(visited / total * 100) : 0;
+  var kpiEl = document.getElementById('report-kpi-grid');
+  if (kpiEl) {
+    kpiEl.innerHTML = [
+      ['예약 건수',  total,          ''],
+      ['방문완료',   visited,        'var(--green)'],
+      ['노쇼',       noshow,         'var(--red)'],
+      ['방문율',     rate + '%',     rate >= 70 ? 'var(--green)' : rate >= 40 ? 'var(--amber-text)' : 'var(--red)'],
+    ].map(function(item) {
+      return '<div class="stat-card"><div class="stat-label">' + item[0] + '</div>'
+        + '<div class="stat-val" style="color:' + (item[2]||'var(--text)') + '">' + item[1] + '</div></div>';
+    }).join('');
+  }
+
+  // ── 바 차트 헬퍼 ────────────────────────────────────────────
+  function barChart(elId, data, color) {
+    var el = document.getElementById(elId);
+    if (!el) return;
+    var entries = Object.entries(data).sort(function(a,b){ return b[1]-a[1]; });
+    if (!entries.length) { el.innerHTML = '<div class="empty" style="padding:12px">데이터 없음</div>'; return; }
+    var max = entries[0][1];
+    el.innerHTML = entries.map(function(e) {
+      var pct = Math.round(e[1] / max * 100);
+      return '<div class="bar-row">'
+        + '<div class="bar-meta"><span>' + e[0] + '</span><span>' + e[1] + '건</span></div>'
+        + '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;background:' + color + '"></div></div>'
+        + '</div>';
+    }).join('');
+  }
+
+  // ── 약국별 ──────────────────────────────────────────────────
+  var byPh = {};
+  monthly.forEach(function(r) {
+    var k = r['약국명'] || '미상';
+    byPh[k] = (byPh[k]||0) + 1;
+  });
+  barChart('report-chart-ph', byPh, 'var(--blue)');
+
+  // ── 국가별 ──────────────────────────────────────────────────
+  var byCountry = {};
+  monthly.forEach(function(r) {
+    var k = r['국가'] || '미상';
+    byCountry[k] = (byCountry[k]||0) + 1;
+  });
+  barChart('report-chart-country', byCountry, '#F59E0B');
+
+  // ── 플랫폼별 ────────────────────────────────────────────────
+  var byPlat = {};
+  monthly.forEach(function(r) {
+    var k = r['플랫폼'] || '미상';
+    byPlat[k] = (byPlat[k]||0) + 1;
+  });
+  barChart('report-chart-platform', byPlat, 'var(--green)');
+
+  // ── 일별 추이 ───────────────────────────────────────────────
+  var byDay = {};
+  // 해당 월 일수
+  var daysInMonth = new Date(_mgrYear, _mgrMonth, 0).getDate();
+  for (var d = 1; d <= daysInMonth; d++) {
+    var key = _mgrYear + '-' + String(_mgrMonth).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    byDay[key] = 0;
+  }
+  monthly.forEach(function(r) {
+    var k = r['방문날짜'] || '';
+    if (byDay.hasOwnProperty(k)) byDay[k]++;
+  });
+  // 0인 날 제외하고 표시
+  var byDayFiltered = {};
+  Object.entries(byDay).forEach(function(e) {
+    if (e[1] > 0) byDayFiltered[e[0].slice(5)] = e[1]; // MM-DD만 표시
+  });
+  var dailyEl = document.getElementById('report-chart-daily');
+  if (dailyEl) {
+    if (!Object.keys(byDayFiltered).length) {
+      dailyEl.innerHTML = '<div class="empty" style="padding:12px">데이터 없음</div>';
+    } else {
+      var maxD = Math.max.apply(null, Object.values(byDayFiltered));
+      dailyEl.innerHTML = Object.entries(byDayFiltered).map(function(e) {
+        var pct = Math.round(e[1] / maxD * 100);
+        return '<div class="bar-row">'
+          + '<div class="bar-meta"><span>' + e[0] + '</span><span>' + e[1] + '건</span></div>'
+          + '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;background:var(--blue-dark)"></div></div>'
+          + '</div>';
+      }).join('');
+    }
+  }
 }
 
 async function loadMgrStats() {
