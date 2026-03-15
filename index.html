@@ -41,6 +41,9 @@ body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-se
 
 /* Header */
 .header{background:var(--white);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:100}
+
+/* safe area 측정용 숨김 엘리먼트 */
+#sa-probe{position:fixed;top:0;left:0;width:1px;height:env(safe-area-inset-top,0px);pointer-events:none;opacity:0;z-index:-1}
 .header-title{font-size:17px;font-weight:700}
 .header-right{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px}
 .logout-btn{font-size:12px;color:var(--red);font-weight:600;cursor:pointer;border:none;background:none;padding:4px 8px}
@@ -213,7 +216,7 @@ input[readonly]{background:var(--gray);color:var(--muted)}
 </style>
 </head>
 <body onload="initLoginScreen()">
-
+<div id="sa-probe"></div>
 <div class="lbar" id="lbar"></div>
 
 <!-- 번역 로딩 오버레이 -->
@@ -1087,7 +1090,31 @@ function setLoginLang(lang, el) {
   document.getElementById('s-link').placeholder   = linkPh[lang]  || 'https://';
 }
 
-// ── 번역 헬퍼 ─────────────────────────────────────────────────
+// ── Safe Area 측정 + 헤더 패딩 적용 ──────────────────────────
+function getSafeAreaTop() {
+  // CSS env()를 실제 px로 측정 (브라우저/기종 무관하게 정확)
+  var probe = document.getElementById('sa-probe');
+  if (probe) {
+    var h = probe.getBoundingClientRect().height;
+    if (h > 0) return h;
+  }
+  // probe가 없거나 0이면 fallback
+  return 0;
+}
+
+function applyHeaderPadding() {
+  var header = document.querySelector('.header');
+  if (!header) return;
+  var safeTop = getSafeAreaTop();
+  var basePad = 14;
+  var finalPad = safeTop > 0 ? Math.max(basePad, safeTop + 10) : basePad;
+  header.style.paddingTop = finalPad + 'px';
+  // login-wrap도 safe area 반영
+  var loginWrap = document.querySelector('.login-wrap');
+  if (loginWrap) {
+    loginWrap.style.paddingTop = Math.max(24, safeTop + 24) + 'px';
+  }
+}
 // T(key) : 현재 언어에 맞는 번역 텍스트 반환
 var TR = {
   ko: {
@@ -1357,6 +1384,8 @@ function initLoginScreen() {
   try {
     var lbar = document.getElementById('lbar');
     if (lbar) lbar.style.display = 'none';
+    // safe area 측정 후 헤더 패딩 적용
+    applyHeaderPadding();
     // 세션 복원 시도
     var saved = loadSession();
     if (saved && saved.email && saved.role) {
@@ -1388,19 +1417,8 @@ function doLogout() {
   document.getElementById('login-screen').style.display = 'block';
   document.getElementById('bottom-nav').style.display = 'none';
   document.getElementById('l-pw').value = '';
-  // 헤더 safe area 스타일 초기화
-  var header = document.querySelector('.header');
-  if (header) {
-    var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    var isIOS    = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    if (isIOS) {
-      header.style.paddingTop = isSafari
-        ? 'max(52px, calc(env(safe-area-inset-top, 44px) + 10px))'
-        : '14px';
-    } else {
-      header.style.paddingTop = '14px';
-    }
-  }
+  // 헤더 safe area 재적용
+  applyHeaderPadding();
   // 로그인 화면 언어 버튼 초기화 (한국어 active)
   document.querySelectorAll('.lang-btn').forEach(function(b) { b.classList.remove('active'); });
   var koBtn = document.querySelector('.lang-btn:first-child');
@@ -1829,22 +1847,9 @@ async function initApp() {
   document.getElementById('main-app').style.display = 'flex';
   document.getElementById('user-name').textContent = currentUser.name;
 
-  // 브라우저별 헤더 safe area 적용
-  var header = document.querySelector('.header');
-  if (header) {
-    var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    var isIOS    = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    if (isIOS) {
-      // 아이폰 사파리만 safe area 적용, 크롬은 일반 패딩
-      header.style.paddingTop = isSafari
-        ? 'max(52px, calc(env(safe-area-inset-top, 44px) + 10px))'
-        : '14px';
-    } else {
-      // 안드로이드 / PC — 일반 패딩
-      header.style.paddingTop = '14px';
-    }
-    void header.offsetHeight;
-  }
+  // safe area 측정 후 헤더 패딩 적용 (브라우저/기종 자동 감지)
+  applyHeaderPadding();
+  void document.querySelector('.header').offsetHeight;
   applyI18n();
   buildNav();
   load(true);
