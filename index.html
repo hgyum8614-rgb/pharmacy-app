@@ -1,0 +1,2877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Pharmacy Reservation</title>
+<style>
+/* Apps Script iframe 전체화면 강제 */
+html { width:100% !important; height:100% !important; }
+body { width:100% !important; min-height:100vh !important; overflow-x:hidden !important; }
+:root {
+  --blue:#2B7CFF; --blue-bg:#EFF5FF; --blue-dark:#185FA5;
+  --green:#1D9E75; --green-bg:#EAF3DE;
+  --red:#E24B4A; --red-bg:#FCEBEB;
+  --amber-bg:#FAEEDA; --amber-text:#854F0B;
+  --gray:#F5F6F8; --border:#E8E8E8;
+  --text:#1A1A1A; --muted:#888;
+  --white:#fff; --radius:12px; --radius-sm:8px;
+  --nav-h:64px; --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--gray);color:var(--text);font-size:15px}
+
+/* 앱 전체 컨테이너 — 모바일 우선, 태블릿/PC는 중앙 정렬 */
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:480px;margin:0 auto;background:var(--white);position:relative}
+
+/* PC/태블릿에서 양쪽 여백 배경 */
+@media (min-width:481px) {
+  body { background: #e8ecf0; }
+  .app { box-shadow: 0 0 40px rgba(0,0,0,0.12); }
+  .bottom-nav { max-width:480px; left:50%; transform:translateX(-50%); }
+  .login-wrap { background: #e8ecf0; }
+  #trans-overlay { max-width:480px; left:50%; transform:translateX(-50%); }
+}
+
+/* Header */
+.header{background:var(--white);border-bottom:1px solid var(--border);padding:14px 16px;padding-top:calc(14px + env(safe-area-inset-top,0px));display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:100}
+.header-title{font-size:17px;font-weight:700}
+.header-right{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.logout-btn{font-size:12px;color:var(--red);font-weight:600;cursor:pointer;border:none;background:none;padding:4px 8px}
+
+/* Scroll */
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 16px;padding-bottom:calc(var(--nav-h) + var(--safe-b) + 16px)}
+
+/* Bottom Nav */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:calc(var(--nav-h) + var(--safe-b));background:var(--white);border-top:1px solid var(--border);display:flex;z-index:200;padding-bottom:var(--safe-b);max-width:480px;margin:0 auto}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;border:none;background:transparent;padding:8px 4px;color:var(--muted);font-size:10px;font-weight:600;transition:color .15s}
+.nav-btn.active{color:var(--blue)}
+.nav-icon{font-size:22px;line-height:1}
+
+/* Card */
+.card{background:var(--white);border-radius:var(--radius);border:1px solid var(--border);padding:16px;margin-bottom:10px}
+.card-title{font-size:15px;font-weight:700;margin-bottom:14px}
+.section-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px}
+
+/* Form */
+.fg{margin-bottom:13px}
+.fl{font-size:13px;font-weight:600;color:var(--muted);margin-bottom:5px;display:block}
+input,select,textarea{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--white);color:var(--text);font-size:16px;font-family:inherit;-webkit-appearance:none;appearance:none;transition:border-color .15s}
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--white) inset !important;
+  -webkit-text-fill-color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue)}
+input[readonly]{background:var(--gray);color:var(--muted)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* Buttons */
+.btn{padding:14px 20px;border-radius:var(--radius-sm);border:none;cursor:pointer;font-size:15px;font-weight:700;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:opacity .15s,transform .1s;width:100%;min-height:50px}
+.btn:active{transform:scale(.98);opacity:.9}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-success{background:var(--green);color:#fff}
+.btn-danger{background:var(--red);color:#fff}
+.btn-ghost{background:var(--white);border:1px solid var(--border);color:var(--text)}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.btn-sm{width:auto;padding:7px 14px;min-height:36px;font-size:13px;border-radius:var(--radius-sm)}
+
+/* Badge */
+.badge{display:inline-flex;align-items:center;padding:4px 10px;border-radius:100px;font-size:12px;font-weight:700}
+.b-wait{background:var(--amber-bg);color:var(--amber-text)}
+.b-pending{background:#E6F1FB;color:#185FA5}
+.b-approved{background:var(--green-bg);color:#3B6D11}
+.b-rejected{background:var(--red-bg);color:#A32D2D}
+.b-confirmed{background:#EDE9FE;color:#5B21B6}
+.b-visited{background:#DBEAFE;color:#1D4ED8}
+.b-noshow{background:#FCE7F3;color:#9D174D}
+.b-cancelled{background:var(--gray);color:var(--muted)}
+
+/* Step bar */
+.step-bar{display:flex;margin-bottom:16px}
+.step{flex:1;text-align:center;font-size:11px;font-weight:700;padding:8px 2px;color:#ccc;border-bottom:2.5px solid #eee}
+.step.active{color:var(--blue);border-color:var(--blue)}
+.step.done{color:var(--green);border-color:var(--green)}
+
+/* Select card */
+.sel-card{border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:13px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:11px;background:var(--white);transition:all .15s}
+.sel-card.selected{border-color:var(--blue);background:var(--blue-bg)}
+.sel-check{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .15s}
+.sel-card.selected .sel-check{background:var(--blue);border-color:var(--blue);color:#fff}
+.sel-body{flex:1;min-width:0}
+.sel-name{font-size:14px;font-weight:700}
+.sel-sub{font-size:12px;color:var(--muted);margin-top:2px}
+
+/* Time grid */
+.time-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+.slot{padding:12px 4px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--white);cursor:pointer;font-size:14px;font-weight:700;text-align:center;transition:all .15s}
+.slot.taken{opacity:.3;text-decoration:line-through;cursor:not-allowed}
+.slot.selected{background:var(--blue);color:#fff;border-color:var(--blue)}
+
+/* List item */
+.li{background:var(--white);border-radius:var(--radius);border:1px solid var(--border);padding:14px 16px;margin-bottom:8px}
+.li-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px}
+.li-name{font-size:15px;font-weight:700}
+.li-sub{font-size:13px;color:var(--muted);margin-bottom:3px}
+.li-id{font-size:11px;font-weight:700;color:var(--blue);margin-bottom:5px}
+.li-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--gray)}
+
+/* Stats */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.stat-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+.stat-label{font-size:12px;color:var(--muted);margin-bottom:4px}
+.stat-val{font-size:26px;font-weight:800}
+
+/* Bar chart */
+.bar-row{margin-bottom:11px}
+.bar-meta{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
+.bar-meta span:last-child{font-weight:700}
+.bar-track{height:8px;background:var(--gray);border-radius:100px}
+.bar-fill{height:8px;border-radius:100px;transition:width .5s}
+
+/* Alert */
+.alert{padding:13px 16px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;margin-bottom:10px}
+.alert-ok{background:var(--green-bg);color:#3B6D11}
+.alert-err{background:var(--red-bg);color:#A32D2D}
+.alert-info{background:var(--blue-bg);color:var(--blue-dark)}
+
+/* Chip */
+.chips{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;margin-bottom:12px;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+.chips::-webkit-scrollbar{display:none}
+.chip{padding:7px 14px;border-radius:100px;border:1px solid var(--border);background:var(--white);font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap;flex-shrink:0}
+.chip.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+
+/* Login */
+.login-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:var(--gray)}
+.login-box{background:var(--white);border-radius:16px;border:1px solid var(--border);padding:28px 24px;width:100%;max-width:400px}
+.login-logo{font-size:40px;text-align:center;margin-bottom:10px}
+.login-title{font-size:20px;font-weight:800;text-align:center;margin-bottom:4px}
+.login-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:20px}
+
+/* Language selector */
+.lang-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:20px}
+.lang-btn{padding:10px 4px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--white);cursor:pointer;font-size:13px;font-weight:700;color:var(--muted);text-align:center;transition:all .15s;line-height:1.3}
+.lang-btn:active{transform:scale(.96)}
+.lang-btn .lang-flag{font-size:20px;display:block;margin-bottom:3px}
+.lang-btn.active{border-color:var(--blue);background:var(--blue-bg);color:var(--blue)}
+.lang-divider{height:1px;background:var(--border);margin:0 0 18px}
+
+/* Success */
+.success-wrap{text-align:center;padding:28px 0}
+.success-icon{width:64px;height:64px;border-radius:50%;background:var(--green-bg);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:30px}
+.id-box{background:var(--blue-bg);border-radius:var(--radius-sm);padding:14px 24px;display:inline-block;font-size:22px;font-weight:800;letter-spacing:3px;color:var(--blue);margin:12px 0}
+.sum-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--gray);font-size:14px}
+.sum-row:last-child{border:none}
+.sum-key{color:var(--muted)}
+
+/* Pages */
+.page{display:none}.page.active{display:block}
+.tab{display:none}.tab.active{display:block}
+
+/* Loading */
+.lbar{position:fixed;top:0;left:0;right:0;height:3px;background:var(--blue);z-index:9999;display:none;animation:lbar .8s ease infinite}
+@keyframes lbar{0%{opacity:1}50%{opacity:.5}100%{opacity:1}}
+.spinner{display:inline-block;width:20px;height:20px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:40px 16px;color:var(--muted);font-size:14px}
+
+/* Notify toggle */
+.notify-toggle{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.notify-opt{padding:11px;border:1.5px solid var(--border);border-radius:var(--radius-sm);text-align:center;cursor:pointer;font-size:13px;font-weight:700;color:var(--muted);transition:all .15s}
+.notify-opt.selected{border-color:var(--blue);background:var(--blue-bg);color:var(--blue)}
+
+/* Tag */
+.tag{font-size:11px;background:var(--gray);color:var(--muted);padding:2px 8px;border-radius:100px;white-space:nowrap}
+
+/* Search */
+.search-row{display:flex;gap:8px;margin-bottom:12px}
+.search-row input{flex:1}
+.search-row .btn{width:auto;padding:0 18px}
+
+/* Auth tab */
+.auth-tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;margin-bottom:20px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+.auth-tab{padding:11px;text-align:center;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;background:var(--white);border:none;transition:all .15s;font-family:inherit}
+.auth-tab.active{background:var(--blue);color:#fff}
+.auth-panel{display:none}.auth-panel.active{display:block}
+/* Password toggle */
+.pw-wrap{position:relative}
+.pw-wrap input{padding-right:44px}
+.pw-eye{position:absolute;right:0;top:0;height:100%;width:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);background:none;border:none;padding:0;font-size:18px;-webkit-tap-highlight-color:transparent}
+.pw-eye:active{opacity:.6}
+</style>
+</head>
+<body onload="initLoginScreen()">
+
+<div class="lbar" id="lbar"></div>
+
+<!-- 번역 로딩 오버레이 -->
+<div id="trans-overlay" style="display:none;position:fixed;inset:0;background:rgba(255,255,255,0.92);z-index:9998;flex-direction:column;align-items:center;justify-content:center;gap:16px">
+  <div style="width:48px;height:48px;border:3.5px solid var(--blue-bg);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite"></div>
+  <div id="trans-overlay-lang" style="font-size:22px"></div>
+  <div style="font-size:15px;font-weight:700;color:var(--text)" id="trans-overlay-msg">번역 중...</div>
+  <div style="font-size:13px;color:var(--muted)">약국 정보를 현지 언어로 번역하고 있습니다</div>
+</div>
+
+<!-- ══ 로그인 ══════════════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-wrap">
+    <div class="login-box">
+      <div class="login-logo">💊</div>
+      <div class="login-title" id="login-title">Pharmacy Reservation</div>
+      <div class="login-sub" id="login-sub">Sign in to continue</div>
+
+      <!-- 언어 선택 -->
+      <div class="lang-row">
+        <button class="lang-btn active" onclick="setLoginLang('ko',event.currentTarget)"><span class="lang-flag">🇰🇷</span>한국어</button>
+        <button class="lang-btn" onclick="setLoginLang('en',event.currentTarget)"><span class="lang-flag">🇺🇸</span>English</button>
+        <button class="lang-btn" onclick="setLoginLang('ja',event.currentTarget)"><span class="lang-flag">🇯🇵</span>日本語</button>
+        <button class="lang-btn" onclick="setLoginLang('zh',event.currentTarget)"><span class="lang-flag">🇨🇳</span>中文</button>
+      </div>
+      <div class="lang-divider"></div>
+
+      <!-- 3탭: 로그인 / 인플루언서 가입 / 약국 가입 -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login-btn"    onclick="switchAuthTab('login')">로그인</button>
+        <button class="auth-tab"        id="tab-signup-btn"   onclick="switchAuthTab('signup')">회원가입</button>
+        <button class="auth-tab"        id="tab-pharmacy-btn" onclick="switchAuthTab('pharmacy')">약국 가입</button>
+      </div>
+
+      <!-- ① 로그인 패널 -->
+      <div class="auth-panel active" id="panel-login">
+        <div id="login-alert"></div>
+        <div class="fg"><label class="fl" id="lbl-email">Email</label>
+          <input type="email" id="l-email" placeholder="email@example.com" inputmode="email" autocomplete="email">
+        </div>
+        <div class="fg"><label class="fl" id="lbl-pw">비밀번호</label>
+          <div class="pw-wrap">
+            <input type="password" id="l-pw" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" autocomplete="current-password">
+            <button class="pw-eye" type="button" onclick="togglePw('l-pw',event.currentTarget)" tabindex="-1">👁</button>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="login-btn" onclick="doLogin()">Sign in</button>
+
+        <!-- 관리자/매니저 접속 버튼 -->
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+          <div style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:10px" id="lbl-staff-access">관리자 · 매니저 접속</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <button class="btn btn-ghost" style="font-size:13px;min-height:42px" onclick="quickLogin('manager')">
+              👔 매니저
+            </button>
+            <button class="btn btn-ghost" style="font-size:13px;min-height:42px" onclick="quickLogin('admin')">
+              ⚙️ 관리자
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ② 인플루언서 가입 패널 -->
+      <div class="auth-panel" id="panel-signup">
+        <div id="signup-alert"></div>
+        <div class="fg"><label class="fl" id="lbl-s-name">Name</label>
+          <input type="text" id="s-name" autocomplete="name">
+        </div>
+        <div class="fg"><label class="fl" id="lbl-s-email">Email</label>
+          <input type="email" id="s-email" inputmode="email" autocomplete="email">
+        </div>
+        <div class="form-row">
+          <div class="fg"><label class="fl" id="lbl-s-pw">비밀번호</label>
+            <div class="pw-wrap"><input type="password" id="s-pw" autocomplete="new-password"><button class="pw-eye" type="button" onclick="togglePw('s-pw',event.currentTarget)" tabindex="-1">👁</button></div>
+          </div>
+          <div class="fg"><label class="fl" id="lbl-s-pw2">비밀번호 확인</label>
+            <div class="pw-wrap"><input type="password" id="s-pw2" autocomplete="new-password"><button class="pw-eye" type="button" onclick="togglePw('s-pw2',event.currentTarget)" tabindex="-1">👁</button></div>
+          </div>
+        </div>
+        <div class="fg"><label class="fl" id="lbl-s-country">Country</label>
+          <select id="s-country">
+            <option value="Japan">Japan 🇯🇵</option>
+            <option value="China">China 🇨🇳</option>
+            <option value="Taiwan">Taiwan 🇹🇼</option>
+            <option value="Hong Kong">Hong Kong 🇭🇰</option>
+            <option value="Thailand">Thailand 🇹🇭</option>
+            <option value="Singapore">Singapore 🇸🇬</option>
+            <option value="Vietnam">Vietnam 🇻🇳</option>
+            <option value="USA">USA 🇺🇸</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="fg"><label class="fl" id="lbl-s-platform">Platform</label>
+          <select id="s-platform">
+            <option value="Instagram">Instagram</option>
+            <option value="TikTok">TikTok</option>
+            <option value="YouTube">YouTube</option>
+            <option value="Xiaohongshu">Xiaohongshu</option>
+            <option value="Weibo">Weibo</option>
+          </select>
+        </div>
+        <div class="fg"><label class="fl" id="lbl-s-link">Account Link</label>
+          <input type="url" id="s-link" inputmode="url" placeholder="https://">
+        </div>
+        <button class="btn btn-primary" id="signup-btn" onclick="doSignup()">Sign up</button>
+      </div>
+
+      <!-- ③ 약국 가입 패널 -->
+      <div class="auth-panel" id="panel-pharmacy">
+        <div id="ph-signup-alert"></div>
+        <div class="fg"><label class="fl" id="lbl-ph-name">Pharmacy Name</label>
+          <input type="text" id="ph-name">
+        </div>
+        <div class="fg"><label class="fl" id="lbl-ph-email">Email</label>
+          <input type="email" id="ph-email" inputmode="email" autocomplete="email">
+        </div>
+        <div class="form-row">
+          <div class="fg"><label class="fl" id="lbl-ph-pw">비밀번호</label>
+            <div class="pw-wrap"><input type="password" id="ph-pw" autocomplete="new-password"><button class="pw-eye" type="button" onclick="togglePw('ph-pw',event.currentTarget)" tabindex="-1">👁</button></div>
+          </div>
+          <div class="fg"><label class="fl" id="lbl-ph-pw2">비밀번호 확인</label>
+            <div class="pw-wrap"><input type="password" id="ph-pw2" autocomplete="new-password"><button class="pw-eye" type="button" onclick="togglePw('ph-pw2',event.currentTarget)" tabindex="-1">👁</button></div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5" id="lbl-ph-code-hint">
+          After signing up, you can complete your pharmacy profile from the app.
+        </div>
+        <button class="btn btn-primary" id="ph-signup-btn" onclick="doPharmacySignup()">Sign up</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══ 메인 앱 ═════════════════════════════════════════════ -->
+<div id="main-app" class="app" style="display:none">
+  <div class="header">
+    <div class="header-title" id="app-title">💊</div>
+    <div class="header-right">
+      <span id="user-name" style="font-weight:600"></span>
+      <button class="logout-btn" onclick="doLogout()" id="lbl-logout">Logout</button>
+    </div>
+  </div>
+
+  <div class="scroll" id="scroll">
+
+    <!-- ── 인플루언서 화면 ── -->
+    <div id="role-influencer" class="page">
+      <div class="chips" id="inf-tabs">
+        <div class="chip active" onclick="showInfTab('book',this)" id="lbl-tab-book">Book</div>
+        <div class="chip" onclick="showInfTab('myres',this);loadMyReservations()" id="lbl-tab-myres">My Reservations</div>
+        <div class="chip" onclick="showInfTab('myprofile',this);loadMyProfile()" id="lbl-tab-myprofile">My Info</div>
+      </div>
+
+      <!-- 예약하기 -->
+      <div id="tab-book" class="tab active">
+        <div id="book-form">
+          <!-- Step1: 약국 -->
+          <div id="bs1">
+            <div class="step-bar"><div class="step active" id="lbl-step1">약국</div><div class="step" id="lbl-step2">정보 입력</div><div class="step" id="lbl-step3">날짜·시간</div></div>
+            <div class="section-label" id="lbl-city">City</div>
+            <div class="chips" id="city-chips"></div>
+            <div class="chips" id="district-chips" style="display:none"></div>
+            <div id="ph-list"></div>
+            <div style="height:10px"></div>
+            <button class="btn btn-primary" onclick="goBS(2)" id="lbl-next">Next</button>
+          </div>
+
+          <!-- Step2: 정보 -->
+          <div id="bs2" style="display:none">
+            <div class="step-bar"><div class="step done" id="lbl-step1b">약국</div><div class="step active" id="lbl-step2b">정보 입력</div><div class="step" id="lbl-step3b">날짜·시간</div></div>
+            <div class="card">
+              <div class="card-title" id="lbl-inf-info">Your Info</div>
+              <div class="fg"><label class="fl" id="lbl-platform">Platform</label>
+                <select id="b-platform"><option value="Instagram">Instagram</option><option value="TikTok">TikTok</option><option value="YouTube">YouTube</option><option value="Xiaohongshu">Xiaohongshu</option><option value="Weibo">Weibo</option></select>
+              </div>
+              <div class="form-row">
+                <div class="fg"><label class="fl" id="lbl-followers">Followers</label><input type="number" id="b-followers" inputmode="numeric" placeholder="50000"></div>
+                <div class="fg"><label class="fl" id="lbl-party">Visitors</label>
+                  <select id="b-party"><option value="1명">1</option><option value="2명">2</option><option value="3명">3</option><option value="4명 이상">4+</option></select>
+                </div>
+              </div>
+              <div class="fg"><label class="fl" id="lbl-acct">Account Link</label><input type="url" id="b-link" inputmode="url" placeholder="https://"></div>
+            </div>
+            <div class="card">
+              <div class="card-title" id="lbl-product">Select Product</div>
+              <div id="prod-list"></div>
+            </div>
+            <div class="card">
+              <div class="card-title" id="lbl-notify">Notification Method</div>
+              <div class="notify-toggle">
+                <div class="notify-opt selected" id="no-line" onclick="setNotify('LINE')">LINE</div>
+                <div class="notify-opt" id="no-email" onclick="setNotify('EMAIL')">Email</div>
+                <div class="notify-opt" id="no-both" onclick="setNotify('BOTH')">Both</div>
+              </div>
+              <!-- LINE 입력 -->
+              <div class="fg" style="margin-top:10px" id="wrap-line">
+                <label class="fl" id="lbl-notify-line">LINE Token</label>
+                <input type="text" id="b-notify-line" placeholder="LINE Notify Token">
+              </div>
+              <!-- 이메일 입력 -->
+              <div class="fg" style="margin-top:10px;display:none" id="wrap-email">
+                <label class="fl" id="lbl-notify-email">Email</label>
+                <input type="email" id="b-notify-email" placeholder="email@example.com" inputmode="email">
+              </div>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-ghost" onclick="goBS(1)" id="lbl-back">← Back</button>
+              <button class="btn btn-primary" onclick="goBS(3)" id="lbl-next2">Next →</button>
+            </div>
+          </div>
+
+          <!-- Step3: 날짜/시간 -->
+          <div id="bs3" style="display:none">
+            <div class="step-bar"><div class="step done" id="lbl-step1c">약국</div><div class="step done" id="lbl-step2c">정보 입력</div><div class="step active" id="lbl-step3c">날짜·시간</div></div>
+            <div class="card">
+              <div class="card-title" id="lbl-select-date">Select Date</div>
+              <input type="date" id="b-date" onchange="loadSlots()" style="margin-bottom:8px">
+              <div style="font-size:13px;color:var(--muted)" id="b-ph-display"></div>
+            </div>
+            <div class="card">
+              <div class="card-title" id="lbl-select-time">Select Time</div>
+              <div style="font-size:12px;color:var(--muted);margin-bottom:8px" id="lbl-taken-hint">Strikethrough = already booked</div>
+              <div class="time-grid" id="time-slots"></div>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-ghost" onclick="goBS(2)" id="lbl-back2">← Back</button>
+              <button class="btn btn-primary" id="submit-btn" onclick="submitReservation()" id="lbl-submit">Book Now</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 완료 -->
+        <div id="book-done" style="display:none">
+          <div class="card">
+            <div class="success-wrap">
+              <div class="success-icon">✓</div>
+              <div style="font-size:18px;font-weight:800;margin-bottom:6px" id="lbl-done-title">Reservation Submitted!</div>
+              <div style="font-size:13px;color:var(--muted);margin-bottom:16px" id="lbl-done-sub">예약 요청이 약국으로 전달되었습니다. 약국 승인을 기다려주세요.</div>
+              <div class="id-box" id="done-id"></div>
+              <div id="done-summary" style="text-align:left;margin:16px 0"></div>
+              <div style="display:flex;flex-direction:column;gap:10px;width:100%">
+                <button class="btn btn-primary" onclick="goToMyRes()" id="lbl-new-book">내 예약 확인하기</button>
+                <button class="btn btn-ghost" onclick="resetBook()">+ 새 예약하기</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 예약 확인 모달 -->
+      <div id="book-confirm-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;display:none;align-items:flex-end;justify-content:center">
+        <div style="background:var(--white);border-radius:16px 16px 0 0;width:100%;max-width:480px;padding:24px 20px;padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))">
+          <div style="font-size:17px;font-weight:800;margin-bottom:4px" id="lbl-modal-title">이대로 예약하시겠습니까?</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:18px" id="lbl-modal-sub">아래 내용을 확인해주세요</div>
+          <div id="modal-summary"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px">
+            <button class="btn btn-ghost" id="lbl-modal-edit" onclick="closeBookModal()">수정하기</button>
+            <button class="btn btn-primary" id="modal-confirm-btn" onclick="doFinalSubmit()" id="lbl-modal-ok">예약 확정</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 내 예약 -->
+      <div id="tab-myres" class="tab">
+        <div id="myres-list"><div class="empty" id="lbl-loading">Loading...</div></div>
+      </div>
+
+      <!-- 내 정보 -->
+      <div id="tab-myprofile" class="tab">
+        <div id="myprofile-content"></div>
+      </div>
+    </div>
+
+    <!-- ── 매니저 화면 (모니터링) ── -->
+    <div id="role-manager" class="page">
+      <!-- 요약 통계 -->
+      <div class="stat-grid" id="mgr-stat-grid" style="margin-bottom:12px"></div>
+      <!-- 상태 필터 -->
+      <div class="chips" id="all-status-chips">
+        <div class="chip active" onclick="setAllFilter('',this)">전체</div>
+        <div class="chip" onclick="setAllFilter('승인대기',this)">승인대기</div>
+        <div class="chip" onclick="setAllFilter('승인완료',this)">승인완료</div>
+        <div class="chip" onclick="setAllFilter('방문완료',this)">방문완료</div>
+        <div class="chip" onclick="setAllFilter('노쇼',this)">노쇼</div>
+        <div class="chip" onclick="setAllFilter('비승인',this)">거절</div>
+        <div class="chip" onclick="setAllFilter('취소',this)">취소</div>
+      </div>
+      <div id="all-list"><div class="empty">로딩 중...</div></div>
+    </div>
+
+    <!-- ── 약국 관리자 화면 ── -->
+    <div id="role-pharmacy" class="page">
+      <div class="chips" id="ph-mgr-tabs">
+        <div class="chip active" onclick="showPhMgrTab('reservations',this)">예약 관리</div>
+        <div class="chip" onclick="showPhMgrTab('myinfo',this)">약국 정보</div>
+      </div>
+
+      <!-- 예약 관리 탭 -->
+      <div id="ph-tab-reservations" class="tab active">
+        <div class="chips" id="ph-res-chips">
+          <div class="chip active" onclick="setPhResFilter('',this)">전체</div>
+          <div class="chip" onclick="setPhResFilter('승인대기',this)">승인대기</div>
+          <div class="chip" onclick="setPhResFilter('승인완료',this)">승인완료</div>
+          <div class="chip" onclick="setPhResFilter('방문완료',this)">방문완료</div>
+          <div class="chip" onclick="setPhResFilter('노쇼',this)">노쇼</div>
+          <div class="chip" onclick="setPhResFilter('취소',this)">취소</div>
+        </div>
+        <div id="ph-res-list"><div class="empty">로딩 중...</div></div>
+      </div>
+
+      <!-- 약국 정보 탭 -->
+      <div id="ph-tab-myinfo" class="tab">
+
+        <!-- 계정 정보 -->
+        <div class="card">
+          <div class="card-title">계정 정보</div>
+          <div class="fg">
+            <label class="fl">이메일 (로그인 ID)</label>
+            <input id="pi-email-display" readonly style="background:var(--gray);color:var(--muted)">
+          </div>
+          <div class="fg"><label class="fl">약국명 (계정명)</label>
+            <input id="pi-account-name" readonly style="background:var(--gray);color:var(--muted)">
+          </div>
+        </div>
+
+        <!-- 기본 정보 -->
+        <div class="card">
+          <div class="card-title">약국 기본 정보</div>
+          <div class="fg"><label class="fl">약국명 *</label><input id="pi-name" placeholder="약국명"></div>
+          <div class="form-row">
+            <div class="fg"><label class="fl">도시</label><input id="pi-city" placeholder="서울"></div>
+            <div class="fg"><label class="fl">구 / 지역</label><input id="pi-district" placeholder="강남구, 명동 등"></div>
+          </div>
+          <div class="fg"><label class="fl">주소</label>
+            <input id="pi-addr" placeholder="상세 주소" oninput="autoGenMapLink('pi-addr','pi-map')">
+          </div>
+          <div class="fg"><label class="fl">연락처</label>
+            <input id="pi-phone" inputmode="tel" placeholder="010-0000-0000"
+                   oninput="formatPhone(this)">
+          </div>
+          <div class="fg"><label class="fl">응대 언어</label><input id="pi-lang" placeholder="영어, 일본어, 중국어"></div>
+          <div class="fg">
+            <label class="fl">구글맵 링크</label>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input id="pi-map" type="url" placeholder="주소 입력 시 자동 생성" style="flex:1">
+              <button type="button" class="btn btn-ghost btn-sm" onclick="previewMap('pi-map')" style="white-space:nowrap;flex-shrink:0">🗺 미리보기</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 운영 시간 -->
+        <div class="card">
+          <div class="card-title">방문 가능 시간</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:10px">인플루언서가 예약 시 참고하는 운영 시간입니다</div>
+
+          <!-- 요일 선택 -->
+          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px">운영 요일</div>
+          <div id="days-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:16px"></div>
+
+          <!-- 시간 선택 -->
+          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px">운영 시간</div>
+          <div id="hours-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px"></div>
+
+          <div class="fg"><label class="fl">요약 (자동 생성 / 직접 수정 가능)</label>
+            <input id="pi-hours" placeholder="예: 월~금 10:00-18:00">
+          </div>
+        </div>
+
+        <!-- 알림 설정 -->
+        <div class="card">
+          <div class="card-title">알림 설정</div>
+          <div class="fg"><label class="fl">카카오 채널 ID</label><input id="pi-kakao" placeholder="채널 ID (알림톡 수신용)"></div>
+          <div class="fg">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+              <label class="fl" style="margin:0">SMS 수신 번호</label>
+              <button type="button" class="btn btn-ghost btn-sm" onclick="copySmsFromPhone('pi-phone','pi-sms')"
+                      style="padding:4px 10px;font-size:12px;height:28px;min-height:0">연락처와 동일</button>
+            </div>
+            <input id="pi-sms" inputmode="tel" placeholder="010-0000-0000" oninput="formatPhone(this)">
+          </div>
+        </div>
+
+        <div id="pi-alert"></div>
+        <button class="btn btn-primary" onclick="saveMyPharmacyInfo()" style="margin-bottom:16px">정보 저장</button>
+
+        <!-- 비밀번호 변경 -->
+        <div class="card">
+          <div class="card-title">비밀번호 변경</div>
+          <div class="fg"><label class="fl">현재 비밀번호</label>
+            <div class="pw-wrap"><input type="password" id="pw-current" placeholder="현재 비밀번호" autocomplete="current-password"><button class="pw-eye" type="button" onclick="togglePw('pw-current',event.currentTarget)" tabindex="-1">👁</button></div>
+          </div>
+          <div class="fg"><label class="fl">새 비밀번호</label>
+            <div class="pw-wrap"><input type="password" id="pw-new" placeholder="새 비밀번호 (6자 이상)" autocomplete="new-password"><button class="pw-eye" type="button" onclick="togglePw('pw-new',event.currentTarget)" tabindex="-1">👁</button></div>
+          </div>
+          <div class="fg"><label class="fl">새 비밀번호 확인</label>
+            <div class="pw-wrap"><input type="password" id="pw-new2" placeholder="새 비밀번호 재입력" autocomplete="new-password"><button class="pw-eye" type="button" onclick="togglePw('pw-new2',event.currentTarget)" tabindex="-1">👁</button></div>
+          </div>
+          <div id="pw-alert"></div>
+          <button class="btn btn-ghost" onclick="changePassword()" style="margin-top:4px">비밀번호 변경</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── 관리자 화면 ── -->
+    <div id="role-admin" class="page">
+      <div class="chips" id="adm-tabs">
+        <div class="chip active" onclick="showAdmTab('dashboard',this)">대시보드</div>
+        <div class="chip" onclick="showAdmTab('pharmacies',this)">약국</div>
+        <div class="chip" onclick="showAdmTab('products',this)">제품</div>
+        <div class="chip" onclick="showAdmTab('managers',this)">담당자</div>
+        <div class="chip" onclick="showAdmTab('settings',this)">API 설정</div>
+      </div>
+
+      <!-- 대시보드 -->
+      <div id="tab-dashboard" class="tab active">
+        <div class="stat-grid" id="stat-grid"></div>
+        <div class="card"><div class="card-title">약국별 현황</div><div id="chart-ph"></div></div>
+        <div class="card"><div class="card-title">플랫폼별 현황</div><div id="chart-platform"></div></div>
+        <div class="card"><div class="card-title">국가별 현황</div><div id="chart-country"></div></div>
+      </div>
+
+      <!-- 약국 관리 -->
+      <div id="tab-pharmacies" class="tab">
+        <button class="btn btn-primary btn-sm" style="margin-bottom:10px" onclick="openPhForm()">+ 약국 추가</button>
+        <div id="ph-admin-list"></div>
+        <div id="ph-form" style="display:none">
+          <div class="card">
+            <div class="card-title" id="ph-form-title">약국 추가</div>
+            <input type="hidden" id="pf-id">
+            <div class="fg"><label class="fl">약국명 *</label><input id="pf-name" placeholder="약국명"></div>
+            <div class="form-row">
+              <div class="fg"><label class="fl">도시</label><input id="pf-city" placeholder="서울"></div>
+              <div class="fg"><label class="fl">구 / 지역</label><input id="pf-district" placeholder="강남구, 명동 등"></div>
+            </div>
+            <div class="fg"><label class="fl">주소</label>
+              <input id="pf-addr" placeholder="상세 주소" oninput="autoGenMapLink('pf-addr','pf-map')">
+            </div>
+            <div class="fg"><label class="fl">응대언어</label><input id="pf-lang" placeholder="영어,일본어"></div>
+            <div class="fg">
+              <label class="fl">연락처</label>
+              <input id="pf-phone" placeholder="010-0000-0000" inputmode="tel" oninput="formatPhone(this)">
+            </div>
+            <div class="fg">
+              <label class="fl">구글맵 링크</label>
+              <div style="display:flex;gap:8px;align-items:center">
+                <input id="pf-map" placeholder="주소 입력 시 자동 생성" type="url" style="flex:1">
+                <button type="button" class="btn btn-ghost btn-sm" onclick="previewMap('pf-map')" style="white-space:nowrap;flex-shrink:0">🗺 미리보기</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 방문 가능 시간 -->
+          <div class="card">
+            <div class="card-title">방문 가능 시간</div>
+            <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px">운영 요일</div>
+            <div id="pf-days-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:16px"></div>
+            <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px">운영 시간</div>
+            <div id="pf-hours-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px"></div>
+            <div class="fg"><label class="fl">요약 (자동 생성 / 직접 수정 가능)</label>
+              <input id="pf-hours" placeholder="예: 월~금 10:00-18:00">
+            </div>
+          </div>
+
+          <!-- 알림 설정 -->
+          <div class="card">
+            <div class="card-title">알림 설정</div>
+            <div class="fg"><label class="fl">카카오 채널ID</label><input id="pf-kakao" placeholder="채널 ID"></div>
+            <div class="fg">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+                <label class="fl" style="margin:0">SMS 번호</label>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="copySmsFromPhone('pf-phone','pf-sms')"
+                        style="padding:4px 10px;font-size:12px;height:28px;min-height:0">연락처와 동일</button>
+              </div>
+              <input id="pf-sms" placeholder="010-0000-0000" inputmode="tel" oninput="formatPhone(this)">
+            </div>
+          </div>
+
+          <div class="btn-row" style="padding:0 0 16px">
+            <button class="btn btn-ghost" onclick="closePhForm()">취소</button>
+            <button class="btn btn-primary" onclick="savePharmacy()">저장</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 제품 관리 -->
+      <div id="tab-products" class="tab">
+        <button class="btn btn-primary btn-sm" style="margin-bottom:10px" onclick="openPrForm()">+ 제품 추가</button>
+        <div id="pr-admin-list"></div>
+        <div id="pr-form" style="display:none">
+          <div class="card">
+            <div class="card-title" id="pr-form-title">제품 추가</div>
+            <input type="hidden" id="prf-id">
+            <div class="fg"><label class="fl">제품명 *</label><input id="prf-name" placeholder="제품명"></div>
+            <div class="form-row">
+              <div class="fg"><label class="fl">증정 수량</label><input id="prf-qty" type="number" inputmode="numeric" placeholder="3"></div>
+              <div class="fg"><label class="fl">가이드 링크</label><input id="prf-link" type="url" placeholder="https://"></div>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-ghost" onclick="closePrForm()">취소</button>
+              <button class="btn btn-primary" onclick="saveProduct()">저장</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 담당자 관리 -->
+      <div id="tab-managers" class="tab">
+        <button class="btn btn-primary btn-sm" style="margin-bottom:10px" onclick="openMgrForm()">+ 담당자 추가</button>
+        <div id="mgr-admin-list"></div>
+        <div id="mgr-form" style="display:none">
+          <div class="card">
+            <div class="card-title" id="mgr-form-title">담당자 추가</div>
+            <div class="fg"><label class="fl">국가</label>
+              <select id="mf-country">
+                <option>Japan</option><option>China</option><option>Taiwan</option><option>Hong Kong</option><option>Thailand</option><option>Singapore</option><option>Vietnam</option><option>USA</option><option>Other</option>
+              </select>
+            </div>
+            <div class="fg"><label class="fl">담당자명</label><input id="mf-name" placeholder="이름"></div>
+            <div class="fg"><label class="fl">이메일</label><input id="mf-email" type="email" inputmode="email" placeholder="email@brand.com"></div>
+            <div class="btn-row">
+              <button class="btn btn-ghost" onclick="closeMgrForm()">취소</button>
+              <button class="btn btn-primary" onclick="saveManager()">저장</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- API 설정 -->
+      <div id="tab-settings" class="tab">
+        <div class="card">
+          <div class="card-title">카카오 알림톡</div>
+          <div class="fg"><label class="fl">API Key</label><input id="s-kakao-key" placeholder="카카오 API 키"></div>
+          <div class="fg"><label class="fl">User ID</label><input id="s-kakao-uid" placeholder="알리고 카카오 User ID"></div>
+          <div class="fg"><label class="fl">Sender Key</label><input id="s-kakao-sender" placeholder="발신 프로필 키"></div>
+          <div class="fg"><label class="fl">Template Code</label><input id="s-kakao-tpl" placeholder="템플릿 코드"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">SMS (알리고)</div>
+          <div class="fg"><label class="fl">API Key</label><input id="s-sms-key" placeholder="알리고 API 키"></div>
+          <div class="fg"><label class="fl">User ID</label><input id="s-sms-uid" placeholder="알리고 User ID"></div>
+          <div class="fg"><label class="fl">발신 번호</label><input id="s-sms-sender" placeholder="010-0000-0000" inputmode="tel"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">기본 설정</div>
+          <div class="fg"><label class="fl">기본 담당자 이메일</label><input id="s-default-email" type="email" inputmode="email" placeholder="manager@brand.com"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">🤖 Gemini AI 번역</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:10px">약국명·주소·제품명을 인플루언서 국가 언어로 자동 번역합니다</div>
+          <div class="fg"><label class="fl">Gemini API Key</label><input id="s-gemini-key" placeholder="AIzaSy..."></div>
+          <div style="font-size:12px;color:var(--muted)">🔗 <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--blue)">Google AI Studio</a>에서 무료 발급</div>
+        </div>
+        <button class="btn btn-primary" onclick="saveSettings()">설정 저장</button>
+      </div>
+    </div>
+
+  </div><!-- /scroll -->
+
+  <!-- Bottom Nav (역할별로 표시 다름) -->
+  <nav class="bottom-nav" id="bottom-nav" style="display:none"></nav>
+</div>
+
+<script>
+// ── 설정 ──────────────────────────────────────────────────────
+const USE_FETCH = true;
+const WEB_APP_URL = 'https://script.google.com/a/macros/neosimplix.com/s/AKfycbwcL_VEUndfNL64JpNTGuJ8dmS4fIooS8O9stryimrv86mU1T7o8eKjT3bBkHDFKsD9/exec';
+
+// ── 상태 ──────────────────────────────────────────────────────
+let currentUser = null;
+
+// 예약번호 역순 정렬 헬퍼 (RES-1001 → 1001 추출 후 내림차순)
+function sortByResId(arr) {
+  return arr.slice().sort(function(a, b) {
+    var na = parseInt((a['예약ID'] || '').replace(/\D/g, '')) || 0;
+    var nb = parseInt((b['예약ID'] || '').replace(/\D/g, '')) || 0;
+    return nb - na;
+  });
+}
+function fmtDate(str) {
+  if (!str) return '';
+  // 이미 Date 객체처럼 긴 문자열이면 파싱
+  var d = new Date(str);
+  if (isNaN(d.getTime())) return str;
+  return d.getFullYear() + '년 ' + (d.getMonth()+1) + '월 ' + d.getDate() + '일';
+}
+
+// 날짜+시간 포맷: "2026-03-16" + "10:00" → "2026년 3월 16일 10:00"
+function fmtDateTime(dateStr, timeStr) {
+  return fmtDate(dateStr) + (timeStr ? ' ' + timeStr : '');
+}
+
+// 세션 저장/복원 (Apps Script에서 sessionStorage 사용 가능)
+function saveSession(user) {
+  try {
+    var data = Object.assign({}, user, { _lang: loginLang });
+    sessionStorage.setItem('ph_user', JSON.stringify(data));
+  } catch(e) {}
+}
+function saveTabSession(tab) {
+  try { sessionStorage.setItem('ph_tab', tab); } catch(e) {}
+}
+function loadTabSession() {
+  try { return sessionStorage.getItem('ph_tab') || ''; } catch(e) { return ''; }
+}
+function clearSession() {
+  try {
+    sessionStorage.removeItem('ph_user');
+    sessionStorage.removeItem('ph_tab');
+  } catch(e) {}
+}
+function loadSession() {
+  try {
+    var s = sessionStorage.getItem('ph_user');
+    return s ? JSON.parse(s) : null;
+  } catch(e) { return null; }
+}
+let pharmacies = [], products = [], allRes = [];
+let selPharmacy = null, selProduct = null, selSlot = null, selNotify = 'LINE';
+let curCity = '', allFilter = '';
+let loginLang = 'ko'; // 로그인 화면 선택 언어 (기본: 한국어)
+
+// ── i18n ──────────────────────────────────────────────────────
+const I18N = {
+  ko: {
+    'login-title':'약국 예약 시스템','login-sub':'로그인하여 계속하세요',
+    'lbl-email':'이메일','lbl-pw':'비밀번호','lbl-logout':'로그아웃',
+    'login-btn':'로그인','tab-login-btn':'로그인','tab-signup-btn':'회원가입','signup-btn':'가입하기',
+    'lbl-s-name':'이름','lbl-s-email':'이메일','lbl-s-pw':'비밀번호','lbl-s-pw2':'비밀번호 확인',
+    'lbl-s-country':'국가','lbl-s-platform':'플랫폼','lbl-s-link':'계정 링크',
+    'tab-pharmacy-btn':'약국 가입',
+    'lbl-ph-code-hint':'가입 후 앱에서 약국 정보를 직접 입력할 수 있습니다.',
+    'lbl-ph-name':'약국명','lbl-ph-email':'이메일','lbl-ph-pw':'비밀번호','lbl-ph-pw2':'비밀번호 확인',
+    'ph-signup-btn':'약국 가입하기',
+    'lbl-tab-book':'예약하기','lbl-tab-myres':'내 예약','lbl-tab-myprofile':'내 정보',
+    'lbl-city':'도시','lbl-all':'전체','lbl-next':'다음','lbl-back':'← 이전','lbl-next2':'다음 →',
+    'lbl-inf-info':'내 정보','lbl-platform':'플랫폼','lbl-followers':'팔로워 수',
+    'lbl-party':'방문 인원','lbl-acct':'계정 링크',
+    'lbl-product':'제품 선택','lbl-notify':'알림 수단',
+    'lbl-notify-line':'LINE 토큰','lbl-notify-email':'이메일',
+    'lbl-select-date':'날짜 선택','lbl-select-time':'시간 선택',
+    'lbl-taken-hint':'취소선 = 이미 예약된 시간','lbl-back2':'← 이전',
+    'submit-btn':'예약 완료','lbl-done-title':'예약이 접수되었습니다!',
+    'lbl-done-sub':'예약 요청이 약국으로 전달되었습니다. 약국 승인을 기다려주세요.','lbl-new-book':'내 예약 확인하기',
+    'lbl-loading':'로딩 중...',
+    status:{'매니저대기':'검토 대기','승인대기':'약국 확인 중','승인완료':'승인 완료',
+            '비승인':'거절됨','방문확정':'방문 확정','노쇼예정':'노쇼 예정',
+            '방문완료':'방문 완료','노쇼':'노쇼','취소':'취소'},
+  },
+  en: {
+    'login-title':'Pharmacy Reservation','login-sub':'Sign in to continue',
+    'lbl-email':'Email','lbl-pw':'Password','lbl-logout':'Logout',
+    'login-btn':'Sign in','tab-login-btn':'Sign in','tab-signup-btn':'Sign up','signup-btn':'Create account',
+    'lbl-s-name':'Name','lbl-s-email':'Email','lbl-s-pw':'Password','lbl-s-pw2':'Confirm password',
+    'lbl-s-country':'Country','lbl-s-platform':'Platform','lbl-s-link':'Account Link',
+    'tab-pharmacy-btn':'Pharmacy',
+    'lbl-ph-code-hint':'After signing up, you can complete your pharmacy profile from the app.',
+    'lbl-ph-name':'Pharmacy Name','lbl-ph-email':'Email','lbl-ph-pw':'Password','lbl-ph-pw2':'Confirm',
+    'ph-signup-btn':'Register Pharmacy',
+    'lbl-tab-book':'Book','lbl-tab-myres':'My Reservations','lbl-tab-myprofile':'My Info',
+    'lbl-city':'City','lbl-all':'All','lbl-next':'Next','lbl-back':'← Back','lbl-next2':'Next →',
+    'lbl-inf-info':'Your Info','lbl-platform':'Platform','lbl-followers':'Followers',
+    'lbl-party':'Visitors','lbl-acct':'Account Link',
+    'lbl-product':'Select Product','lbl-notify':'Notification Method',
+    'lbl-notify-line':'LINE Token','lbl-notify-email':'Email',
+    'lbl-select-date':'Select Date','lbl-select-time':'Select Time',
+    'lbl-taken-hint':'Strikethrough = already booked','lbl-back2':'← Back',
+    'submit-btn':'Book Now','lbl-done-title':'Reservation Submitted!',
+    'lbl-done-sub':'Your request has been sent to the pharmacy. Please wait for approval.','lbl-new-book':'My Reservations',
+    'lbl-loading':'Loading...',
+    status:{'매니저대기':'Pending Review','승인대기':'Awaiting Pharmacy','승인완료':'Approved',
+            '비승인':'Declined','방문확정':'Confirmed','노쇼예정':'No-Show Expected',
+            '방문완료':'Visited','노쇼':'No-Show','취소':'Cancelled'},
+  },
+  ja: {
+    'login-title':'薬局予約システム','login-sub':'サインインしてください',
+    'lbl-email':'メールアドレス','lbl-pw':'パスワード','lbl-logout':'ログアウト',
+    'login-btn':'ログイン','tab-login-btn':'ログイン','tab-signup-btn':'新規登録','signup-btn':'登録する',
+    'lbl-s-name':'お名前','lbl-s-email':'メールアドレス','lbl-s-pw':'パスワード','lbl-s-pw2':'パスワード確認',
+    'lbl-s-country':'国','lbl-s-platform':'プラットフォーム','lbl-s-link':'アカウントリンク',
+    'tab-pharmacy-btn':'薬局登録',
+    'lbl-ph-code-hint':'登録後、アプリから薬局情報を入力できます。',
+    'lbl-ph-name':'薬局名','lbl-ph-email':'メールアドレス','lbl-ph-pw':'パスワード','lbl-ph-pw2':'確認',
+    'ph-signup-btn':'薬局登録',
+    'lbl-tab-book':'予約する','lbl-tab-myres':'予約履歴','lbl-tab-myprofile':'マイ情報',
+    'lbl-city':'都市','lbl-all':'すべて','lbl-next':'次へ','lbl-back':'← 戻る','lbl-next2':'次へ →',
+    'lbl-inf-info':'あなたの情報','lbl-platform':'プラットフォーム','lbl-followers':'フォロワー数',
+    'lbl-party':'訪問人数','lbl-acct':'アカウントリンク',
+    'lbl-product':'製品を選ぶ','lbl-notify':'通知方法',
+    'lbl-notify-line':'LINEトークン','lbl-notify-email':'メールアドレス',
+    'lbl-select-date':'日付を選ぶ','lbl-select-time':'時間を選ぶ',
+    'lbl-taken-hint':'取り消し線 = 予約済み','lbl-back2':'← 戻る',
+    'submit-btn':'予約する','lbl-done-title':'予約が完了しました！',
+    'lbl-done-sub':'予約リクエストが薬局に送られました。承認をお待ちください。','lbl-new-book':'予約履歴を見る',
+    'lbl-loading':'読み込み中...',
+    status:{'매니저대기':'確認待ち','승인대기':'薬局確認中','승인완료':'承認済み',
+            '비승인':'断られました','방문확정':'確定','노쇼예정':'キャンセル予定',
+            '방문완료':'訪問完了','노쇼':'ノーショー','취소':'キャンセル'},
+  },
+  zh: {
+    'login-title':'药局预约系统','login-sub':'请登录',
+    'lbl-email':'邮箱','lbl-pw':'密码','lbl-logout':'退出',
+    'login-btn':'登录','tab-login-btn':'登录','tab-signup-btn':'注册','signup-btn':'立即注册',
+    'lbl-s-name':'姓名','lbl-s-email':'邮箱','lbl-s-pw':'密码','lbl-s-pw2':'确认密码',
+    'lbl-s-country':'国家','lbl-s-platform':'平台','lbl-s-link':'账号链接',
+    'tab-pharmacy-btn':'药局注册',
+    'lbl-ph-code-hint':'注册后，您可以在应用中完善药局信息。',
+    'lbl-ph-name':'药局名称','lbl-ph-email':'邮箱','lbl-ph-pw':'密码','lbl-ph-pw2':'确认',
+    'ph-signup-btn':'注册药局',
+    'lbl-tab-book':'预约','lbl-tab-myres':'我的预约','lbl-tab-myprofile':'我的信息',
+    'lbl-city':'城市','lbl-all':'全部','lbl-next':'下一步','lbl-back':'← 返回','lbl-next2':'下一步 →',
+    'lbl-inf-info':'您的信息','lbl-platform':'平台','lbl-followers':'粉丝数',
+    'lbl-party':'访问人数','lbl-acct':'账号链接',
+    'lbl-product':'选择产品','lbl-notify':'通知方式',
+    'lbl-notify-line':'LINE Token','lbl-notify-email':'邮箱',
+    'lbl-select-date':'选择日期','lbl-select-time':'选择时间',
+    'lbl-taken-hint':'划线 = 已预约','lbl-back2':'← 返回',
+    'submit-btn':'立即预约','lbl-done-title':'预约已提交！',
+    'lbl-done-sub':'预约请求已发送至药局，请等待审批。','lbl-new-book':'查看我的预约',
+    'lbl-loading':'加载中...',
+    status:{'매니저대기':'待确认','승인대기':'药局确认中','승인완료':'已批准',
+            '비승인':'已拒绝','방문확정':'已确认','노쇼예정':'预计爽约',
+            '방문완료':'已访问','노쇼':'爽约','취소':'已取消'},
+  },
+};
+
+function getLang(country) {
+  // 로그인 화면에서 명시적으로 선택한 언어 항상 최우선
+  // (ko도 명시적 선택일 수 있으므로, country 기반보다 loginLang 우선)
+  if (loginLang === 'ja' || loginLang === 'zh' || loginLang === 'en') return loginLang;
+  // loginLang이 'ko'이거나 미설정이면 → 국가 기반으로 결정
+  if (!country) return 'ko';
+  if (['Japan','Taiwan','Hong Kong'].includes(country)) return 'ja';
+  if (['China'].includes(country)) return 'zh';
+  if (['USA','Singapore','Vietnam','Thailand','Other'].includes(country)) return 'en';
+  return 'ko';
+}
+
+function t(key) {
+  const lang = currentUser ? getLang(currentUser.country) : loginLang;
+  const map  = I18N[lang] || I18N.en;
+  return map[key] || key;
+}
+
+function applyI18n() {
+  var lang = currentUser ? getLang(currentUser.country) : loginLang;
+  var map  = I18N[lang] || I18N.en;
+
+  // 1. id 기반 요소 텍스트 업데이트
+  Object.keys(map).forEach(function(k) {
+    if (k === 'status') return;
+    var el = document.getElementById(k);
+    if (el && typeof map[k] === 'string') el.textContent = map[k];
+  });
+
+  // 2. 버튼 텍스트
+  var submitBtn = document.getElementById('submit-btn');
+  if (submitBtn) submitBtn.textContent = map['submit-btn'] || 'Book Now';
+
+  // 3. 앱 내 고정 라벨들 (id 없는 요소들)
+  var fixes = {
+    ko: {
+      'lbl-app-ph':   '약국 선택',
+      'lbl-step1':    '약국',      'lbl-step2': '정보 입력', 'lbl-step3': '날짜·시간',
+      'lbl-platform-label': '플랫폼',
+      'lbl-followers-label': '팔로워 수',
+      'lbl-party-label': '방문 인원',
+      'lbl-acct-label': '계정 링크',
+      'lbl-modal-title': '이대로 예약하시겠습니까?',
+      'lbl-modal-sub':   '아래 내용을 확인해주세요',
+      'lbl-modal-edit':  '수정하기',
+      'lbl-modal-ok':    '예약 확정',
+      'lbl-new-res':     '+ 새 예약하기',
+    },
+    en: {
+      'lbl-app-ph':   'Select Pharmacy',
+      'lbl-step1':    'Pharmacy',  'lbl-step2': 'Details',    'lbl-step3': 'Date & Time',
+      'lbl-platform-label': 'Platform',
+      'lbl-followers-label': 'Followers',
+      'lbl-party-label': 'Visitors',
+      'lbl-acct-label': 'Account Link',
+      'lbl-modal-title': 'Confirm Reservation?',
+      'lbl-modal-sub':   'Please review the details below',
+      'lbl-modal-edit':  'Edit',
+      'lbl-modal-ok':    'Confirm Booking',
+      'lbl-new-res':     '+ New Reservation',
+    },
+    ja: {
+      'lbl-app-ph':   '薬局を選ぶ',
+      'lbl-step1':    '薬局',      'lbl-step2': '詳細入力',   'lbl-step3': '日付・時間',
+      'lbl-platform-label': 'プラットフォーム',
+      'lbl-followers-label': 'フォロワー数',
+      'lbl-party-label': '訪問人数',
+      'lbl-acct-label': 'アカウントリンク',
+      'lbl-modal-title': '予約内容の確認',
+      'lbl-modal-sub':   '以下の内容をご確認ください',
+      'lbl-modal-edit':  '修正する',
+      'lbl-modal-ok':    '予約を確定する',
+      'lbl-new-res':     '+ 新しい予約',
+    },
+    zh: {
+      'lbl-app-ph':   '选择药局',
+      'lbl-step1':    '药局',      'lbl-step2': '填写信息',   'lbl-step3': '日期·时间',
+      'lbl-platform-label': '平台',
+      'lbl-followers-label': '粉丝数',
+      'lbl-party-label': '访问人数',
+      'lbl-acct-label': '账号链接',
+      'lbl-modal-title': '确认预约内容？',
+      'lbl-modal-sub':   '请确认以下信息',
+      'lbl-modal-edit':  '修改',
+      'lbl-modal-ok':    '确认预约',
+      'lbl-new-res':     '+ 新预约',
+    },
+  };
+  var fixMap = fixes[lang] || fixes.en;
+  Object.keys(fixMap).forEach(function(k) {
+    var el = document.getElementById(k);
+    if (el) el.textContent = fixMap[k];
+  });
+
+  // 4. 모달 텍스트
+  var modalTitle = document.querySelector('#book-confirm-modal div > div:first-child');
+  if (modalTitle) modalTitle.textContent = fixMap['lbl-modal-title'] || '이대로 예약하시겠습니까?';
+  var modalSub = document.querySelector('#book-confirm-modal div > div:nth-child(2)');
+  if (modalSub) modalSub.textContent = fixMap['lbl-modal-sub'] || '아래 내용을 확인해주세요';
+
+  // 5. step-bar 텍스트 (3개 step-bar 모두)
+  var s1 = fixMap['lbl-step1'] || '약국';
+  var s2 = fixMap['lbl-step2'] || '정보 입력';
+  var s3 = fixMap['lbl-step3'] || '날짜·시간';
+  ['lbl-step1','lbl-step1b','lbl-step1c'].forEach(function(id){ var e=document.getElementById(id); if(e) e.textContent=s1; });
+  ['lbl-step2','lbl-step2b','lbl-step2c'].forEach(function(id){ var e=document.getElementById(id); if(e) e.textContent=s2; });
+  ['lbl-step3','lbl-step3b','lbl-step3c'].forEach(function(id){ var e=document.getElementById(id); if(e) e.textContent=s3; });
+
+  // 6. 앱 내 form 라벨 (id가 있는 것들 위주)
+  var formLabels = {
+    'lbl-platform-lbl': map['lbl-platform'] || 'Platform',
+    'lbl-followers':    map['lbl-followers'] || 'Followers',
+    'lbl-party':        map['lbl-party']     || 'Visitors',
+  };
+  Object.keys(formLabels).forEach(function(k) {
+    var el = document.getElementById(k);
+    if (el) el.textContent = formLabels[k];
+  });
+}
+
+// 로그인 화면 언어 선택
+function setLoginLang(lang, el) {
+  loginLang = lang;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  const map = I18N[lang] || I18N.en;
+  // 로그인/회원가입 공통 텍스트 업데이트
+  const targets = ['login-title','login-sub','lbl-email','lbl-pw',
+    'tab-login-btn','tab-signup-btn','tab-pharmacy-btn','login-btn','signup-btn','ph-signup-btn',
+    'lbl-s-name','lbl-s-email','lbl-s-pw','lbl-s-pw2','lbl-s-country','lbl-s-platform','lbl-s-link',
+    'lbl-ph-code-hint','lbl-ph-name','lbl-ph-email','lbl-ph-pw','lbl-ph-pw2',
+    'lbl-notify','lbl-notify-line','lbl-notify-email','lbl-new-book'];
+  targets.forEach(k => {
+    const el2 = document.getElementById(k);
+    if (el2 && map[k]) el2.textContent = map[k];
+  });
+  // placeholder 업데이트
+  const emailPh = {'ko':'이메일을 입력하세요','en':'email@example.com','ja':'メールアドレス','zh':'邮箱地址'};
+  const pwPh    = {'ko':'비밀번호','en':'••••••••','ja':'パスワード','zh':'密码'};
+  const linkPh  = {'ko':'https://','en':'https://','ja':'https://','zh':'https://'};
+  document.getElementById('l-email').placeholder  = emailPh[lang] || 'email@example.com';
+  document.getElementById('l-pw').placeholder     = pwPh[lang]    || '••••••••';
+  document.getElementById('s-email').placeholder  = emailPh[lang] || 'email@example.com';
+  document.getElementById('s-link').placeholder   = linkPh[lang]  || 'https://';
+}
+
+// ── 번역 헬퍼 ─────────────────────────────────────────────────
+// T(key) : 현재 언어에 맞는 번역 텍스트 반환
+var TR = {
+  ko: {
+    pharmacy:'약국', date:'날짜', time:'시간', product:'제품', visitors:'방문 인원',
+    platform:'플랫폼', followers:'팔로워', reason:'사유',
+    cancel_btn:'✕ 예약 취소', cancel_confirm:'이 예약을 취소하시겠습니까?',
+    cancelled:'예약이 취소되었습니다',
+    no_res:'예약 내역이 없습니다', no_res_hint:'약국을 예약해보세요',
+    no_ph:'약국을 찾을 수 없습니다',
+    gift_qty:'증정 수량', map_view:'지도 보기',
+    approve:'✓ 승인', reject:'✕ 거절', visited:'✓ 방문완료', noshow:'✕ 노쇼',
+    inf_info:'인플루언서 정보', visit_info:'방문 정보',
+    followers_unit:'팔로워',
+    view_acct:'계정 보기',
+    status_pending:'약국 확인 중', status_approved:'승인 완료',
+    status_visited:'방문 완료', status_noshow:'노쇼', status_cancelled:'취소',
+    error:'오류',
+  },
+  en: {
+    pharmacy:'Pharmacy', date:'Date', time:'Time', product:'Product', visitors:'Visitors',
+    platform:'Platform', followers:'Followers', reason:'Reason',
+    cancel_btn:'✕ Cancel Reservation', cancel_confirm:'Cancel this reservation?',
+    cancelled:'Reservation cancelled',
+    no_res:'No reservations yet', no_res_hint:'Book a pharmacy to get started',
+    no_ph:'No pharmacies found',
+    gift_qty:'Gift Qty', map_view:'View Map',
+    approve:'✓ Approve', reject:'✕ Decline', visited:'✓ Visited', noshow:'✕ No-Show',
+    inf_info:'Influencer Info', visit_info:'Visit Details',
+    followers_unit:'followers',
+    view_acct:'View Account',
+    status_pending:'Awaiting Pharmacy', status_approved:'Approved',
+    status_visited:'Visited', status_noshow:'No-Show', status_cancelled:'Cancelled',
+    error:'Error',
+  },
+  ja: {
+    pharmacy:'薬局', date:'日付', time:'時間', product:'商品', visitors:'訪問人数',
+    platform:'プラットフォーム', followers:'フォロワー', reason:'理由',
+    cancel_btn:'✕ 予約キャンセル', cancel_confirm:'この予約をキャンセルしますか？',
+    cancelled:'予約をキャンセルしました',
+    no_res:'予約がありません', no_res_hint:'薬局を予約してください',
+    no_ph:'薬局が見つかりません',
+    gift_qty:'プレゼント数', map_view:'地図を見る',
+    approve:'✓ 承認', reject:'✕ 断る', visited:'✓ 訪問完了', noshow:'✕ ノーショー',
+    inf_info:'インフルエンサー情報', visit_info:'訪問情報',
+    followers_unit:'フォロワー',
+    view_acct:'アカウントを見る',
+    status_pending:'薬局確認中', status_approved:'承認済み',
+    status_visited:'訪問完了', status_noshow:'ノーショー', status_cancelled:'キャンセル',
+    error:'エラー',
+  },
+  zh: {
+    pharmacy:'药局', date:'日期', time:'时间', product:'产品', visitors:'访问人数',
+    platform:'平台', followers:'粉丝', reason:'原因',
+    cancel_btn:'✕ 取消预约', cancel_confirm:'确定取消此预约？',
+    cancelled:'预约已取消',
+    no_res:'暂无预约', no_res_hint:'请先预约药局',
+    no_ph:'未找到药局',
+    gift_qty:'赠品数量', map_view:'查看地图',
+    approve:'✓ 批准', reject:'✕ 拒绝', visited:'✓ 已访问', noshow:'✕ 爽约',
+    inf_info:'达人信息', visit_info:'访问详情',
+    followers_unit:'粉丝',
+    view_acct:'查看账号',
+    status_pending:'药局确认中', status_approved:'已批准',
+    status_visited:'已访问', status_noshow:'爽约', status_cancelled:'已取消',
+    error:'错误',
+  },
+};
+
+function T(key) {
+  var lang = currentUser ? getLang(currentUser.country) : loginLang;
+  return (TR[lang] && TR[lang][key]) || TR.ko[key] || key;
+}
+
+// ── Gemini 번역 ────────────────────────────────────────────────
+var _transCache = {};
+
+// 번역 로딩 오버레이
+var LANG_FLAG = { en: '🇺🇸', ja: '🇯🇵', zh: '🇨🇳' };
+var TRANS_MSG = {
+  en: 'Translating...', ja: '翻訳中...', zh: '翻译中...'
+};
+var TRANS_SUB = {
+  en: 'Translating pharmacy info into English',
+  ja: '薬局情報を日本語に翻訳しています',
+  zh: '正在将药局信息翻译成中文'
+};
+function showTransOverlay(lang) {
+  var el = document.getElementById('trans-overlay');
+  if (!el) return;
+  document.getElementById('trans-overlay-lang').textContent = LANG_FLAG[lang] || '🌐';
+  document.getElementById('trans-overlay-msg').textContent  = TRANS_MSG[lang] || '번역 중...';
+  var sub = el.querySelector('div:last-child');
+  if (sub) sub.textContent = TRANS_SUB[lang] || '번역 중...';
+  el.style.display = 'flex';
+}
+function hideTransOverlay() {
+  var el = document.getElementById('trans-overlay');
+  if (el) el.style.display = 'none';
+}
+
+async function loadGeminiTranslations(lang) {
+  if (lang === 'ko') return;
+  if (_transCache[lang] && Object.keys(_transCache[lang]).length > 0) return;
+
+  var texts = {};
+  pharmacies.forEach(function(p) {
+    if (p['약국명'])   texts['ph_name_' + p['약국ID']] = p['약국명'];
+    if (p['주소'])     texts['ph_addr_' + p['약국ID']] = p['주소'];
+    if (p['도시'])     texts['ph_city_' + p['약국ID']] = p['도시'];
+    if (p['구'])       texts['ph_gu_'   + p['약국ID']] = p['구'];
+    if (p['응대언어']) texts['ph_lang_' + p['약국ID']] = p['응대언어'];
+  });
+  products.forEach(function(p) {
+    if (p['제품명']) texts['pr_name_' + p['제품ID']] = p['제품명'];
+  });
+  if (Object.keys(texts).length === 0) return;
+
+  showTransOverlay(lang);
+  try {
+    var res = await api('translateWithGemini', { targetLang: lang, texts: texts });
+    if (res.ok && res.data && Object.keys(res.data).length > 0) {
+      _transCache[lang] = res.data;
+    } else {
+      console.warn('Gemini translation failed:', res.error || 'empty response');
+    }
+  } catch(e) {
+    console.warn('Translation error:', e.message);
+  } finally {
+    hideTransOverlay();
+  }
+}
+
+function applyTranslationsToData() {
+  var lang = currentUser ? getLang(currentUser.country) : loginLang;
+  if (lang === 'ko') return;
+  var cache = _transCache[lang];
+  if (!cache) return;
+  pharmacies = pharmacies.map(function(p) {
+    var t = Object.assign({}, p);
+    if (cache['ph_name_' + p['약국ID']]) t['약국명']   = cache['ph_name_' + p['약국ID']];
+    if (cache['ph_addr_' + p['약국ID']]) t['주소']     = cache['ph_addr_' + p['약국ID']];
+    if (cache['ph_city_' + p['약국ID']]) t['도시']     = cache['ph_city_' + p['약국ID']];
+    if (cache['ph_gu_'   + p['약국ID']]) t['구']       = cache['ph_gu_'   + p['약국ID']];
+    if (cache['ph_lang_' + p['약국ID']]) t['응대언어'] = cache['ph_lang_' + p['약국ID']];
+    return t;
+  });
+  products = products.map(function(p) {
+    var t = Object.assign({}, p);
+    if (cache['pr_name_' + p['제품ID']]) t['제품명'] = cache['pr_name_' + p['제품ID']];
+    return t;
+  });
+}
+
+async function api(action, params = {}) {
+  if (USE_FETCH) {
+    const r = await fetch(WEB_APP_URL, { method:'POST', body: JSON.stringify({action, params}) });
+    return r.json();
+  }
+  // google.script.run 안전 체크
+  if (typeof google === 'undefined' || !google.script || !google.script.run) {
+    console.warn('[API] google.script.run 없음 — USE_FETCH=true 로 전환하거나 Apps Script에 배포하세요');
+    return { ok: false, error: 'google.script.run을 사용할 수 없습니다. Apps Script 웹앱으로 접속하세요.' };
+  }
+  return new Promise((res, rej) =>
+    google.script.run
+      .withSuccessHandler(res)
+      .withFailureHandler(e => rej(new Error(e.message || String(e))))
+      .route({action, params})
+  );
+}
+
+function load(on)  { document.getElementById('lbar').style.display = on ? 'block' : 'none'; }
+
+// ── 로그인 ────────────────────────────────────────────────────
+async function doLogin() {
+  const email = document.getElementById('l-email').value.trim();
+  const pw    = document.getElementById('l-pw').value;
+  if (!email || !pw) return;
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
+  load(true);
+  try {
+    const res = await api('login', { email, password: pw });
+    if (!res.ok) { showLoginAlert(res.error); return; }
+    currentUser = res.data;
+    saveSession(currentUser);
+    initApp();
+  } catch(e) { showLoginAlert('Connection error. Please try again.'); }
+  finally {
+    btn.disabled = false;
+    btn.textContent = (I18N[loginLang]||I18N.en)['login-btn'] || '로그인';
+    load(false);
+  }
+}
+
+function showLoginAlert(msg) {
+  const el = document.getElementById('login-alert');
+  el.innerHTML = ('<div class="alert alert-err" style="margin-bottom:12px">'+(msg)+'</div>');
+  setTimeout(() => el.innerHTML = '', 3500);
+}
+
+// 주소 → 구글맵 링크 자동 생성
+function autoGenMapLink(addrId, mapId) {
+  const addr = document.getElementById(addrId).value.trim();
+  const mapEl = document.getElementById(mapId);
+  if (!mapEl) return;
+  if (!addr) { mapEl.value = ''; return; }
+  mapEl.value = 'https://maps.google.com/?q=' + encodeURIComponent(addr);
+}
+
+// 구글맵 링크 미리보기 (새 탭)
+function previewMap(mapId) {
+  const url = document.getElementById(mapId).value.trim();
+  if (!url) { showToast('먼저 주소를 입력해주세요', 'err'); return; }
+  window.open(url, '_blank');
+}
+
+// 전화번호 문자열 포맷 (순수 함수 — 직접 값 세팅용)
+function formatPhoneStr(v) {
+  v = String(v).replace(/\D/g, '');
+  if (!v) return '';
+  if (v.startsWith('02')) {
+    if (v.length <= 5)      return v.slice(0,2) + '-' + v.slice(2);
+    else if (v.length <= 9) return v.slice(0,2) + '-' + v.slice(2,5) + '-' + v.slice(5);
+    else                    return v.slice(0,2) + '-' + v.slice(2,6) + '-' + v.slice(6,10);
+  } else if (v.length <= 10) {
+    return v.slice(0,3) + '-' + v.slice(3,6) + '-' + v.slice(6);
+  } else {
+    return v.slice(0,3) + '-' + v.slice(3,7) + '-' + v.slice(7,11);
+  }
+}
+
+// 전화번호 자동 포맷 (oninput 이벤트용)
+function formatPhone(el) {
+  const pos = el.selectionStart;
+  const prev = el.value;
+  el.value = formatPhoneStr(el.value);
+  // 커서 위치 보정 (하이픈 삽입으로 밀리지 않도록)
+  try { el.setSelectionRange(pos + (el.value.length - prev.length), pos + (el.value.length - prev.length)); } catch(e) {}
+}
+
+// SMS 번호에 연락처 복사
+function copySmsFromPhone(phoneId, smsId) {
+  const phone = document.getElementById(phoneId).value.trim();
+  if (!phone) { showToast('먼저 연락처를 입력해주세요', 'err'); return; }
+  document.getElementById(smsId).value = phone;
+}
+
+// 비밀번호 보기/숨기기 토글
+function togglePw(inputId, btn) {
+  var input = document.getElementById(inputId);
+  if (!input) return;
+  var show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  var btnEl = (btn && btn.currentTarget) ? btn.currentTarget : btn;
+  if (btnEl && btnEl.textContent !== undefined) btnEl.textContent = show ? '🙈' : '👁';
+}
+
+// 페이지 로드 시 한국어 기본 적용
+// 로그인 화면 초기화 (body onload에서 호출)
+function initLoginScreen() {
+  try {
+    var lbar = document.getElementById('lbar');
+    if (lbar) lbar.style.display = 'none';
+    // 세션 복원 시도
+    var saved = loadSession();
+    if (saved && saved.email && saved.role) {
+      if (saved._lang) loginLang = saved._lang;  // 언어 복원
+      currentUser = saved;
+      initApp();
+      return;
+    }
+    // 세션 없으면 한국어 로그인 화면 표시
+    var koBtn = document.querySelector('.lang-btn.active');
+    if (koBtn) setLoginLang('ko', koBtn);
+  } catch(e) { console.error('initLoginScreen error:', e); }
+}
+
+// 즉시 실행 백업 (onload보다 먼저 실행될 경우 대비)
+(function() {
+  try {
+    var lbar = document.getElementById('lbar');
+    if (lbar) lbar.style.display = 'none';
+  } catch(e) {}
+})();
+
+function doLogout() {
+  currentUser = null;
+  loginLang = 'ko';          // 언어 초기화
+  _transCache = {};           // 번역 캐시 초기화
+  clearSession();
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'block';
+  document.getElementById('bottom-nav').style.display = 'none';
+  document.getElementById('l-pw').value = '';
+  // 로그인 화면 언어 버튼 초기화 (한국어 active)
+  document.querySelectorAll('.lang-btn').forEach(function(b) { b.classList.remove('active'); });
+  var koBtn = document.querySelector('.lang-btn:first-child');
+  if (koBtn) koBtn.classList.add('active');
+  setLoginLang('ko', koBtn || document.querySelector('.lang-btn'));
+}
+
+// 로그인 / 회원가입 탭 전환
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.auth-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+  document.getElementById('tab-' + tab + '-btn').classList.add('active');
+  document.getElementById('login-alert').innerHTML  = '';
+  document.getElementById('signup-alert').innerHTML = '';
+}
+
+// 회원가입
+async function doSignup() {
+  const map    = I18N[loginLang] || I18N.en;
+  const name   = document.getElementById('s-name').value.trim();
+  const email  = document.getElementById('s-email').value.trim();
+  const pw     = document.getElementById('s-pw').value;
+  const pw2    = document.getElementById('s-pw2').value;
+  const country   = document.getElementById('s-country').value;
+  const platform  = document.getElementById('s-platform').value;
+  const acctLink  = document.getElementById('s-link').value.trim();
+
+  // 유효성 검사
+  const errMsg = {
+    name   : {'ko':'이름을 입력해주세요','en':'Please enter your name','ja':'お名前を入力してください','zh':'请输入姓名'},
+    email  : {'ko':'이메일을 입력해주세요','en':'Please enter your email','ja':'メールアドレスを入力してください','zh':'请输入邮箱'},
+    pw     : {'ko':'비밀번호를 입력해주세요 (6자 이상)','en':'Password must be at least 6 characters','ja':'パスワードは6文字以上にしてください','zh':'密码至少需要6个字符'},
+    pwMatch: {'ko':'비밀번호가 일치하지 않습니다','en':'Passwords do not match','ja':'パスワードが一致しません','zh':'两次密码不一致'},
+  };
+
+  if (!name)        { showSignupAlert(errMsg.name[loginLang]||errMsg.name.en,   'err'); return; }
+  if (!email)       { showSignupAlert(errMsg.email[loginLang]||errMsg.email.en, 'err'); return; }
+  if (pw.length < 6){ showSignupAlert(errMsg.pw[loginLang]||errMsg.pw.en,       'err'); return; }
+  if (pw !== pw2)   { showSignupAlert(errMsg.pwMatch[loginLang]||errMsg.pwMatch.en,'err'); return; }
+
+  const btn = document.getElementById('signup-btn');
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
+  load(true);
+  try {
+    const res = await api('signup', { name, email, password: pw, country, platform, accountLink: acctLink });
+    if (!res.ok) {
+      showSignupAlert(res.error, 'err');
+      return;
+    }
+    // 가입 성공 → 자동 로그인
+    currentUser = res.data;
+    saveSession(currentUser);
+    initApp();
+  } catch(e) {
+    showSignupAlert('Connection error. Please try again.', 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = (I18N[loginLang]||I18N.en)['signup-btn'] || 'Sign up';
+    load(false);
+  }
+}
+
+function showSignupAlert(msg, type='ok') {
+  const el = document.getElementById('signup-alert');
+  el.innerHTML = ('<div class="alert alert-'+(type)+'" style="margin-bottom:12px">'+(msg)+'</div>');
+  setTimeout(() => el.innerHTML = '', 4000);
+}
+
+// 약국 가입 (자유 가입)
+async function doPharmacySignup() {
+  const name  = document.getElementById('ph-name').value.trim();
+  const email = document.getElementById('ph-email').value.trim();
+  const pw    = document.getElementById('ph-pw').value;
+  const pw2   = document.getElementById('ph-pw2').value;
+
+  const showErr = (msg) => {
+    const el = document.getElementById('ph-signup-alert');
+    el.innerHTML = ('<div class="alert alert-err" style="margin-bottom:12px">'+(msg)+'</div>');
+    setTimeout(() => el.innerHTML='', 4000);
+  };
+
+  const errs = {
+    name : {ko:'약국명을 입력해주세요',en:'Please enter pharmacy name',ja:'薬局名を入力してください',zh:'请输入药局名称'},
+    email: {ko:'이메일을 입력해주세요',en:'Please enter your email',ja:'メールアドレスを入力してください',zh:'请输入邮箱'},
+    pw   : {ko:'비밀번호 6자 이상',en:'Password must be at least 6 characters',ja:'パスワードは6文字以上',zh:'密码至少6位'},
+    pwm  : {ko:'비밀번호가 일치하지 않습니다',en:'Passwords do not match',ja:'パスワードが一致しません',zh:'两次密码不一致'},
+  };
+  if (!name)        { showErr(errs.name[loginLang]||errs.name.en);  return; }
+  if (!email)       { showErr(errs.email[loginLang]||errs.email.en); return; }
+  if (pw.length < 6){ showErr(errs.pw[loginLang]||errs.pw.en);      return; }
+  if (pw !== pw2)   { showErr(errs.pwm[loginLang]||errs.pwm.en);    return; }
+
+  const btn = document.getElementById('ph-signup-btn');
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
+  load(true);
+  try {
+    const res = await api('pharmacySignup', { pharmacyName: name, email, password: pw });
+    if (!res.ok) { showErr(res.error); return; }
+    currentUser = res.data;
+    saveSession(currentUser);
+    initApp();
+  } catch(e) { showErr('Error: ' + e.message); }
+  finally { btn.disabled=false; btn.textContent=(I18N[loginLang]||I18N.en)['ph-signup-btn']||'Sign up'; load(false); }
+}
+
+// ════════════════════════════════════════════════════════════
+//  약국 관리자 화면
+// ════════════════════════════════════════════════════════════
+let phResFilter = '', phMyInfo = null;
+
+function showPhMgrTab(tab, el) {
+  document.querySelectorAll('#role-pharmacy .tab').forEach(x => x.classList.remove('active'));
+  document.getElementById('ph-tab-' + tab).classList.add('active');
+  document.querySelectorAll('#ph-mgr-tabs .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('scroll').scrollTop = 0;
+  saveTabSession('ph:' + tab);
+}
+
+function setPhResFilter(f, el) {
+  phResFilter = f;
+  document.querySelectorAll('#ph-res-chips .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderPhResList();
+}
+
+async function loadPharmacyAdminData() {
+  load(true);
+  try {
+    const [resResult, infoResult] = await Promise.all([
+      api('getReservations', {
+        pharmacyId:   currentUser.pharmacyId,
+        pharmacyName: currentUser.pharmacyName || currentUser.name,
+      }),
+      api('getMyPharmacyInfo', { pharmacyId: currentUser.pharmacyId }),
+    ]);
+    phMyInfo = (infoResult.data && infoResult.data[0]) || {};
+    // 전체 표시 (취소 포함), 최신순
+    window._phAllRes = (resResult.data || [])
+      .sort(function(a,b){ var na=parseInt((a['예약ID']||'').replace(/\D/g,'')); var nb=parseInt((b['예약ID']||'').replace(/\D/g,'')); return nb-na; });
+    renderPhResList();
+    fillMyPharmacyInfo();
+  } catch(e) { console.error(e); }
+  finally { load(false); }
+}
+
+function renderPhResList() {
+  var rows = phResFilter
+    ? (window._phAllRes||[]).filter(function(r){ return r['상태'] === phResFilter; })
+    : (window._phAllRes||[]);
+
+  if (!rows.length) {
+    document.getElementById('ph-res-list').innerHTML = '<div class="empty">'+ T('no_res') +'</div>';
+    return;
+  }
+
+  document.getElementById('ph-res-list').innerHTML = rows.map(function(r) {
+    var actionBtns = '';
+    if (r['상태'] === '승인대기') {
+      actionBtns = '<div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--border)">'
+        + '<button class="btn btn-success" style="border-radius:0;min-height:50px" onclick="phApprove(\'' + r['예약ID'] + '\')">'+T('approve')+'</button>'
+        + '<button class="btn btn-danger" style="border-radius:0;min-height:50px" onclick="phReject(\'' + r['예약ID'] + '\')">'+T('reject')+'</button>'
+        + '</div>';
+    } else if (r['상태'] === '승인완료') {
+      actionBtns = '<div style="display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--border)">'
+        + '<button class="btn btn-success" style="border-radius:0;min-height:50px" onclick="phCheckin(\'' + r['예약ID'] + '\',\'visited\')">'+T('visited')+'</button>'
+        + '<button class="btn btn-danger" style="border-radius:0;min-height:50px" onclick="phCheckin(\'' + r['예약ID'] + '\',\'noshow\')">'+T('noshow')+'</button>'
+        + '</div>';
+    }
+    var reasonHtml = r['사유'] ? '<div style="padding:10px 16px;font-size:12px;color:var(--red);border-top:1px solid var(--border)">'+T('reason')+': ' + r['사유'] + '</div>' : '';
+    var acctHtml = r['계정링크'] ? '<a href="' + r['계정링크'] + '" target="_blank" style="font-size:12px;color:var(--blue);text-decoration:none">'+T('view_acct')+'</a>' : '';
+    var initial = (r['이름']||'?')[0].toUpperCase();
+    return '<div class="li" style="padding:0;overflow:hidden">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--gray);border-bottom:1px solid var(--border)">'
+      + '<span style="font-size:11px;font-weight:700;color:var(--muted)">' + r['예약ID'] + '</span>'
+      + badge(r['상태']) + '</div>'
+      + '<div style="padding:14px 16px;border-bottom:1px solid var(--gray)">'
+      + '<div style="font-size:15px;font-weight:700">' + fmtDateTime(r['방문날짜'],r['방문시간']) + '</div>'
+      + '<div style="font-size:13px;color:var(--muted);margin-top:4px">'+T('visitors')+' ' + r['방문인원'] + ' · ' + (function(){ var pr=products.find(function(p){return p['제품ID']===r['제품ID'];}); return pr?pr['제품명']:r['제품명']; })() + '</div>'
+      + '</div>'
+      + '<div style="padding:14px 16px">'
+      + '<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">'
+      + '<div style="width:40px;height:40px;border-radius:50%;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:var(--blue);flex-shrink:0">' + initial + '</div>'
+      + '<div style="flex:1">'
+      + '<div style="font-size:15px;font-weight:700">' + r['이름'] + '</div>'
+      + '<div style="font-size:12px;color:var(--muted);margin-top:2px">' + r['국가'] + ' · ' + r['플랫폼'] + '</div>'
+      + '</div>'
+      + '<div style="text-align:right">'
+      + '<div style="font-size:14px;font-weight:700;color:var(--blue)">' + fmtN(r['팔로워']) + '</div>'
+      + '<div style="font-size:11px;color:var(--muted)">'+T('followers_unit')+'</div>'
+      + '</div></div>' + acctHtml + '</div>'
+      + actionBtns + reasonHtml + '</div>';
+  }).join('');
+}
+
+async function phApprove(id) {
+  if (!confirm(T('approve') + '?')) return;
+  load(true);
+  try {
+    const res = await api('pharmacyApprove', { id });
+    if (!res.ok) throw new Error(res.error);
+    const r = (window._phAllRes||[]).find(x => x['예약ID']===id);
+    if (r) r['상태'] = '승인완료';
+    renderPhResList();
+    showToast(T('approve') + ' ✓', 'ok');
+  } catch(e) { alert(T('error') + ': ' + e.message); }
+  finally { load(false); }
+}
+
+async function phReject(id) {
+  var reason = prompt(T('reason') + ' (optional):');
+  if (reason === null) return;
+  load(true);
+  try {
+    const res = await api('pharmacyReject', { id, reason });
+    if (!res.ok) throw new Error(res.error);
+    const r = (window._phAllRes||[]).find(x => x['예약ID']===id);
+    if (r) r['상태'] = '비승인';
+    renderPhResList();
+    showToast(T('reject') + ' ✓', 'err');
+  } catch(e) { alert('오류: ' + e.message); }
+  finally { load(false); }
+}
+
+async function phCheckin(id, result) {
+  var label = result==='visited' ? T('visited') : T('noshow');
+  if (!confirm(label + '?')) return;
+  load(true);
+  try {
+    const res = await api('pharmacyCheckin', { id, result });
+    if (!res.ok) throw new Error(res.error);
+    const r = (window._phAllRes||[]).find(x => x['예약ID']===id);
+    if (r) r['상태'] = result==='visited' ? '방문완료' : '노쇼';
+    renderPhResList();
+    showToast(label + ' ✓', result==='visited'?'ok':'err');
+  } catch(e) { alert('오류: ' + e.message); }
+  finally { load(false); }
+}
+
+function fillMyPharmacyInfo() {
+  if (!phMyInfo) return;
+  // 계정 정보 (읽기 전용)
+  document.getElementById('pi-email-display').value  = currentUser.email || '';
+  document.getElementById('pi-account-name').value   = currentUser.name  || '';
+  // 약국 기본 정보
+  document.getElementById('pi-name').value     = phMyInfo['약국명']    || '';
+  document.getElementById('pi-city').value     = phMyInfo['도시']      || '';
+  document.getElementById('pi-district').value = phMyInfo['구']        || '';
+  document.getElementById('pi-phone').value    = formatPhoneStr(phMyInfo['연락처']    || '');
+  document.getElementById('pi-addr').value     = phMyInfo['주소']      || '';
+  const savedMap = phMyInfo['구글맵링크'] || '';
+  document.getElementById('pi-map').value = savedMap ||
+    (phMyInfo['주소'] ? 'https://maps.google.com/?q=' + encodeURIComponent(phMyInfo['주소']) : '');
+  document.getElementById('pi-lang').value     = phMyInfo['응대언어']  || '';
+  document.getElementById('pi-hours').value    = phMyInfo['운영시간']  || '';
+  document.getElementById('pi-kakao').value    = phMyInfo['카카오채널ID'] || '';
+  document.getElementById('pi-sms').value      = formatPhoneStr(phMyInfo['SMS번호']   || '');
+  // 운영시간 버튼 표시
+  renderHoursGrid(phMyInfo['운영시간'] || '');
+}
+
+const HOUR_SLOTS = ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00'];
+const DAY_SLOTS  = ['월','화','수','목','금','토','일'];
+let selectedHours = new Set();
+let selectedDays  = new Set();
+
+function renderDaysGrid() {
+  var grid = document.getElementById('days-grid');
+  if (!grid) return;
+  grid.innerHTML = DAY_SLOTS.map(function(d) {
+    var on = selectedDays.has(d);
+    return '<div onclick="toggleDay(\'' + d + '\')" style="'
+      + 'padding:10px 4px;border-radius:8px;border:1.5px solid ' + (on ? 'var(--blue)' : 'var(--border)') + ';'
+      + 'background:' + (on ? 'var(--blue-bg)' : 'var(--white)') + ';'
+      + 'cursor:pointer;font-size:13px;font-weight:700;text-align:center;'
+      + 'color:' + (on ? 'var(--blue)' : (d==='토'?'#1a73e8':d==='일'?'#e53935':'var(--muted)')) + ';transition:all .15s">'
+      + d + '</div>';
+  }).join('');
+}
+
+function toggleDay(d) {
+  if (selectedDays.has(d)) selectedDays.delete(d);
+  else selectedDays.add(d);
+  renderDaysGrid();
+  updateHoursText();
+}
+
+function updateHoursText() {
+  var sorted = HOUR_SLOTS.filter(function(s){ return selectedHours.has(s); });
+  var timeStr = '';
+  if (sorted.length > 0) {
+    var start = sorted[0];
+    var lastH = parseInt(sorted[sorted.length-1]);
+    timeStr = start + '-' + (lastH + 1) + ':00';
+  }
+  // 요일 범위 생성 (연속이면 ~, 비연속이면 ,)
+  var dayStr = '';
+  if (selectedDays.size > 0) {
+    var orderedDays = DAY_SLOTS.filter(function(d){ return selectedDays.has(d); });
+    // 연속 요일 범위 압축 (월화수목금 → 월~금)
+    if (orderedDays.length >= 2) {
+      var allIdxs = orderedDays.map(function(d){ return DAY_SLOTS.indexOf(d); });
+      var isConsecutive = allIdxs.every(function(v,i){ return i===0 || v === allIdxs[i-1]+1; });
+      dayStr = isConsecutive
+        ? orderedDays[0] + '~' + orderedDays[orderedDays.length-1]
+        : orderedDays.join(',');
+    } else {
+      dayStr = orderedDays[0] || '';
+    }
+  }
+  var result = [dayStr, timeStr].filter(Boolean).join(' ');
+  var el = document.getElementById('pi-hours');
+  if (el) el.value = result;
+}
+
+function renderHoursGrid(current) {
+  selectedHours = new Set();
+  selectedDays  = new Set();
+  if (current) {
+    // 시간 파싱 (예: "10:00-18:00")
+    var tm = current.match(/(\d{1,2}):(\d{2})\s*[-~]\s*(\d{1,2}):(\d{2})/);
+    if (tm) {
+      var start = parseInt(tm[1]), end = parseInt(tm[3]);
+      for (var h = start; h < end; h++) selectedHours.add(h + ':00');
+    }
+    // 요일 파싱 (예: "월~금", "월,화,수", "월화수")
+    var dm = current.match(/([월화수목금토일~,]+)/);
+    if (dm) {
+      var dayPart = dm[1];
+      if (dayPart.indexOf('~') !== -1) {
+        // 범위: 월~금
+        var parts = dayPart.split('~');
+        var s = DAY_SLOTS.indexOf(parts[0]);
+        var e = DAY_SLOTS.indexOf(parts[1]);
+        if (s !== -1 && e !== -1) {
+          for (var i = s; i <= e; i++) selectedDays.add(DAY_SLOTS[i]);
+        }
+      } else {
+        // 개별: 월,화,수 또는 월화수
+        var candidates = dayPart.split(',').join('').split('');
+        candidates.forEach(function(d){ if (DAY_SLOTS.indexOf(d) !== -1) selectedDays.add(d); });
+      }
+    }
+  }
+  var grid = document.getElementById('hours-grid');
+  if (!grid) return;
+  grid.innerHTML = HOUR_SLOTS.map(function(h) {
+    var on = selectedHours.has(h);
+    return '<div onclick="toggleHour(\'' + h + '\')" style="'
+      + 'padding:10px 4px;border-radius:8px;border:1.5px solid ' + (on ? 'var(--blue)' : 'var(--border)') + ';'
+      + 'background:' + (on ? 'var(--blue-bg)' : 'var(--white)') + ';'
+      + 'cursor:pointer;font-size:13px;font-weight:600;text-align:center;'
+      + 'color:' + (on ? 'var(--blue)' : 'var(--muted)') + ';transition:all .15s" id="hslot-' + h.replace(':','') + '">'
+      + h + '</div>';
+  }).join('');
+  renderDaysGrid();
+}
+
+function toggleHour(h) {
+  if (selectedHours.has(h)) selectedHours.delete(h);
+  else selectedHours.add(h);
+  updateHoursText();
+  renderHoursGrid(document.getElementById('pi-hours').value);
+}
+
+async function saveMyPharmacyInfo() {
+  const name = document.getElementById('pi-name').value.trim();
+  if (!name) { showPhInfoAlert('약국명을 입력해주세요', 'err'); return; }
+  load(true);
+  try {
+    const res = await api('savePharmacy', {
+      '약국ID'     : currentUser.pharmacyId,
+      '약국명'     : name,
+      '도시'       : document.getElementById('pi-city').value.trim(),
+      '구'         : document.getElementById('pi-district').value.trim(),
+      '주소'       : document.getElementById('pi-addr').value.trim(),
+      '구글맵링크' : document.getElementById('pi-map').value.trim(),
+      '응대언어'   : document.getElementById('pi-lang').value.trim(),
+      '연락처'     : document.getElementById('pi-phone').value.trim(),
+      '카카오채널ID': document.getElementById('pi-kakao').value.trim(),
+      'SMS번호'    : document.getElementById('pi-sms').value.trim(),
+      '운영시간'   : document.getElementById('pi-hours').value.trim(),
+    });
+    if (!res.ok) throw new Error(res.error);
+    showPhInfoAlert('저장 완료', 'ok');
+  } catch(e) { showPhInfoAlert('오류: ' + e.message, 'err'); }
+  finally { load(false); }
+}
+
+async function changePassword() {
+  const current = document.getElementById('pw-current').value;
+  const newPw   = document.getElementById('pw-new').value;
+  const newPw2  = document.getElementById('pw-new2').value;
+  const showPwAlert = (msg, type='err') => {
+    const el = document.getElementById('pw-alert');
+    el.innerHTML = ('<div class="alert alert-'+(type)+'" style="margin-bottom:10px">'+(msg)+'</div>');
+    setTimeout(() => el.innerHTML='', 4000);
+  };
+  if (!current)        { showPwAlert('현재 비밀번호를 입력해주세요'); return; }
+  if (newPw.length < 6){ showPwAlert('새 비밀번호는 6자 이상이어야 합니다'); return; }
+  if (newPw !== newPw2){ showPwAlert('새 비밀번호가 일치하지 않습니다'); return; }
+  load(true);
+  try {
+    const res = await api('changePassword', {
+      email: currentUser.email, currentPassword: current, newPassword: newPw
+    });
+    if (!res.ok) { showPwAlert(res.error); return; }
+    showPwAlert('비밀번호가 변경되었습니다', 'ok');
+    document.getElementById('pw-current').value = '';
+    document.getElementById('pw-new').value     = '';
+    document.getElementById('pw-new2').value    = '';
+  } catch(e) { showPwAlert('오류: ' + e.message); }
+  finally { load(false); }
+}
+
+function showPhInfoAlert(msg, type='ok') {
+  const el = document.getElementById('pi-alert');
+  el.innerHTML = ('<div class="alert alert-'+(type)+'" style="margin-bottom:10px">'+(msg)+'</div>');
+  setTimeout(() => el.innerHTML='', 3000);
+}
+
+// ── 앱 초기화 ─────────────────────────────────────────────────
+async function initApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'flex';
+  document.getElementById('user-name').textContent = currentUser.name;
+  applyI18n();
+  buildNav();
+  load(true);
+
+  // 1. 데이터 + 번역캐시 동시 로드
+  var lang = getLang(currentUser.country);
+  try {
+    var fetchList = [api('getPharmacies'), api('getProducts')];
+    if (lang !== 'ko') fetchList.push(api('getTransCache', { lang: lang }));
+
+    var results = await Promise.all(fetchList);
+    pharmacies = results[0].data || [];
+    products   = results[1].data || [];
+
+    if (lang !== 'ko') {
+      var cacheRes = results[2];
+      if (cacheRes && cacheRes.ok && cacheRes.data && Object.keys(cacheRes.data).length > 0) {
+        // 캐시 있음 → 즉시 적용 (깜빡임 없음)
+        _transCache[lang] = cacheRes.data;
+        applyTranslationsToData();
+      } else {
+        // 캐시 없음 → Gemini 호출 (첫 번째 로그인만, 오버레이 표시)
+        await loadGeminiTranslations(lang);
+        applyTranslationsToData();
+      }
+    }
+  } catch(e) { console.error('Init error:', e); }
+  finally { load(false); }
+
+  const role = currentUser.role;
+  document.getElementById('role-influencer').classList.remove('active');
+  document.getElementById('role-manager').classList.remove('active');
+  document.getElementById('role-admin').classList.remove('active');
+  document.getElementById('role-pharmacy').classList.remove('active');
+
+  if (role === 'influencer') {
+    document.getElementById('role-influencer').classList.add('active');
+    buildCityChips();        // 번역된 도시명으로 칩 생성
+    renderPharmacies();      // 번역된 약국명으로 리스트 렌더링
+    renderProducts();        // 번역된 제품명으로 렌더링
+    const today = new Date().toISOString().split('T')[0];
+    var dateInput = document.getElementById('b-date');
+    dateInput.value = today;
+    dateInput.min   = today; // 오늘 이전 날짜 선택 불가
+    document.getElementById('app-title').textContent = '💊 Pharmacy';
+    prefillBookingForm();
+    loadMyReservations();
+    // 저장된 탭 복원
+    var savedTab = loadTabSession();
+    if (savedTab && savedTab.indexOf('inf:') === 0) {
+      var tabName = savedTab.replace('inf:', '');
+      var chipEl = document.querySelector('#inf-tabs .chip:nth-child(' +
+        ({book:1, myres:2, myprofile:3}[tabName] || 1) + ')');
+      if (chipEl) {
+        showInfTab(tabName, chipEl);
+        if (tabName === 'myres')     loadMyReservations();
+        if (tabName === 'myprofile') loadMyProfile();
+      }
+    }
+  } else if (role === 'manager') {
+    document.getElementById('role-manager').classList.add('active');
+    document.getElementById('app-title').textContent = '💊 예약 현황';
+    loadAllRes(); loadMgrStats();
+  } else if (role === 'admin') {
+    document.getElementById('role-admin').classList.add('active');
+    document.getElementById('app-title').textContent = '💊 관리자';
+    loadDashboard(); loadPhAdminList(); loadPrAdminList(); loadMgrAdminList(); loadSettings();
+    // 저장된 탭 복원
+    var savedAdmTab = loadTabSession();
+    if (savedAdmTab && savedAdmTab.indexOf('adm:') === 0) {
+      var admTabName = savedAdmTab.replace('adm:', '');
+      var admChipIdx = {dashboard:1, pharmacies:2, products:3, managers:4, settings:5}[admTabName] || 1;
+      var admChipEl = document.querySelector('#adm-tabs .chip:nth-child(' + admChipIdx + ')');
+      if (admChipEl) showAdmTab(admTabName, admChipEl);
+    }
+  } else if (role === 'pharmacy') {
+    document.getElementById('role-pharmacy').classList.add('active');
+    document.getElementById('app-title').textContent = '💊 ' + (currentUser.pharmacyName || '약국');
+    loadPharmacyAdminData();
+    // 저장된 탭 복원
+    var savedPhTab = loadTabSession();
+    if (savedPhTab && savedPhTab.indexOf('ph:') === 0) {
+      var phTabName = savedPhTab.replace('ph:', '');
+      var phChipEl = document.querySelector('#ph-mgr-tabs .chip:nth-child(' +
+        ({reservations:1, myinfo:2}[phTabName] || 1) + ')');
+      if (phChipEl) showPhMgrTab(phTabName, phChipEl);
+    }
+  }
+}
+
+function buildNav() {
+  const nav = document.getElementById('bottom-nav');
+  nav.style.display = 'flex'; // 앱 진입 시 표시
+  const role = currentUser.role;
+  if (role === 'influencer') {
+    nav.innerHTML = ('\n      <button class="nav-btn active" onclick="showInfTab(\'book\',this);setActiveNav(this)"><span class="nav-icon">📅</span>'+(t('lbl-tab-book'))+'</button>\n      <button class="nav-btn" onclick="showInfTab(\'myres\',this);setActiveNav(this);loadMyReservations()"><span class="nav-icon">📋</span>'+(t('lbl-tab-myres'))+'</button>\n      <button class="nav-btn" onclick="showInfTab(\'myprofile\',this);setActiveNav(this);loadMyProfile()"><span class="nav-icon">👤</span>'+(t('lbl-tab-myprofile'))+'</button>');
+  } else if (role === 'manager') {
+    nav.innerHTML = '\n      <button class="nav-btn active" onclick="setActiveNav(this)"><span class="nav-icon">📋</span>예약 현황</button>';
+  } else if (role === 'admin') {
+    nav.innerHTML = '\n      <button class="nav-btn active" onclick="showAdmTab(\'dashboard\',this);setActiveNav(this)"><span class="nav-icon">📊</span>대시보드</button>\n      <button class="nav-btn" onclick="showAdmTab(\'pharmacies\',this);setActiveNav(this)"><span class="nav-icon">🏥</span>약국</button>\n      <button class="nav-btn" onclick="showAdmTab(\'products\',this);setActiveNav(this)"><span class="nav-icon">📦</span>제품</button>\n      <button class="nav-btn" onclick="showAdmTab(\'managers\',this);setActiveNav(this)"><span class="nav-icon">👤</span>담당자</button>\n      <button class="nav-btn" onclick="showAdmTab(\'settings\',this);setActiveNav(this)"><span class="nav-icon">⚙️</span>설정</button>';
+  } else if (role === 'pharmacy') {
+    nav.innerHTML = '\n      <button class="nav-btn active" onclick="showPhMgrTab(\'reservations\',this);setActiveNav(this)"><span class="nav-icon">📋</span>예약 관리</button>\n      <button class="nav-btn" onclick="showPhMgrTab(\'myinfo\',this);setActiveNav(this)"><span class="nav-icon">🏥</span>약국 정보</button>';
+  }
+}
+
+function setActiveNav(el) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ── 탭 전환 ───────────────────────────────────────────────────
+function showInfTab(t, el) {
+  document.querySelectorAll('#role-influencer .tab').forEach(x => x.classList.remove('active'));
+  document.getElementById('tab-' + t).classList.add('active');
+  document.querySelectorAll('#inf-tabs .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('scroll').scrollTop = 0;
+  saveTabSession('inf:' + t);
+}
+
+function showMgrTab(t, el) {
+  document.querySelectorAll('#role-manager .tab').forEach(x => x.classList.remove('active'));
+  document.getElementById('tab-' + t).classList.add('active');
+  document.querySelectorAll('#mgr-tabs .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('scroll').scrollTop = 0;
+}
+
+function showAdmTab(t, el) {
+  document.querySelectorAll('#role-admin .tab').forEach(x => x.classList.remove('active'));
+  document.getElementById('tab-' + t).classList.add('active');
+  document.querySelectorAll('#adm-tabs .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('scroll').scrollTop = 0;
+  saveTabSession('adm:' + t);
+}
+
+// ════════════════════════════════════════════════════════════
+//  인플루언서 — 예약하기
+// ════════════════════════════════════════════════════════════
+let curDistrict = '';
+
+function buildCityChips() {
+  const lang = getLang(currentUser ? currentUser.country : '');
+  const allLabel = {'ko':'전체','en':'All','ja':'すべて','zh':'全部'}[lang] || 'All';
+
+  // 도시 목록 동적 생성
+  const cities = [...new Set(pharmacies.map(p => p['도시']).filter(Boolean))];
+  const cityChips = document.getElementById('city-chips');
+  cityChips.innerHTML = ('<div class="chip active" onclick="setCity(\'\',this)">'+(allLabel)+'</div>') +
+    cities.map(c => ('<div class="chip" onclick="setCity(\''+(c)+'\',this)">'+(c)+'</div>')).join('');
+}
+
+function setCity(c, el) {
+  curCity = c;
+  curDistrict = '';
+  document.querySelectorAll('#city-chips .chip').forEach(x => x.classList.remove('active'));
+  el.classList.add('active');
+
+  // 구 칩 동적 생성
+  const districtChips = document.getElementById('district-chips');
+  if (c) {
+    const districts = [...new Set(
+      pharmacies.filter(p => p['도시'] === c && p['구']).map(p => p['구'])
+    )];
+    if (districts.length > 1) {
+      const lang = getLang(currentUser ? currentUser.country : '');
+      const allLabel = {'ko':'전체','en':'All','ja':'すべて','zh':'全部'}[lang] || 'All';
+      districtChips.style.display = 'flex';
+      districtChips.innerHTML = ('<div class="chip active" onclick="setDistrict(\'\',this)">'+(allLabel)+'</div>') +
+        districts.map(d => ('<div class="chip" onclick="setDistrict(\''+(d)+'\',this)">'+(d)+'</div>')).join('');
+    } else {
+      districtChips.style.display = 'none';
+      districtChips.innerHTML = '';
+    }
+  } else {
+    districtChips.style.display = 'none';
+    districtChips.innerHTML = '';
+  }
+  renderPharmacies();
+}
+
+function setDistrict(d, el) {
+  curDistrict = d;
+  document.querySelectorAll('#district-chips .chip').forEach(x => x.classList.remove('active'));
+  el.classList.add('active');
+  renderPharmacies();
+}
+
+function renderPharmacies() {
+  let list = pharmacies;
+  if (curCity)     list = list.filter(p => p['도시'] === curCity);
+  if (curDistrict) list = list.filter(p => p['구']   === curDistrict);
+  document.getElementById('ph-list').innerHTML = list.length ? list.map(p => ('\n    <div class="sel-card '+(selPharmacy === p['약국ID'] ? 'selected' : '')+'" onclick="selPh(\''+(p['약국ID'])+'\')">\n      <div class="sel-check">'+(selPharmacy === p['약국ID'] ? '✓' : '')+'</div>\n      <div class="sel-body">\n        <div class="sel-name">'+(p['약국명'])+'</div>\n        <div class="sel-sub" style="margin-top:3px">'+(p['주소']||'')+'</div>\n        <div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap">\n          <span class="tag">📍 '+(p['도시'])+(p['구'] ? ' · ' + p['구'] : '')+'</span>\n          '+(p['응대언어'] ? '<span class="tag">🗣 ' + p['응대언어'] + '</span>' : '')+'\n          '+(p['운영시간'] ? '<span class="tag">🕐 ' + p['운영시간'] + '</span>' : '')+'\n        </div>\n      </div>\n    </div>')).join('') : '<div class="empty">' + T('no_ph') + '</div>';
+}
+
+function selPh(id) { selPharmacy = id; renderPharmacies(); }
+
+function renderProducts() {
+  document.getElementById('prod-list').innerHTML = products.map(p => ('\n    <div class="sel-card '+(selProduct === p['제품ID'] ? 'selected' : '')+'" onclick="selPr(\''+(p['제품ID'])+'\')">\n      <div class="sel-check">'+(selProduct === p['제품ID'] ? '✓' : '')+'</div>\n      <div class="sel-body">\n        <div class="sel-name">'+(p['제품명'])+'</div>\n        <div class="sel-sub">' + T('gift_qty') + ': '+(p['증정수량'])+'</div>\n      </div>\n    </div>')).join('');
+}
+
+function selPr(id) { selProduct = id; renderProducts(); }
+
+// 예약 완료 후 내 예약 탭으로 이동
+function goToMyRes() {
+  document.getElementById('book-form').style.display = 'block';
+  document.getElementById('book-done').style.display = 'none';
+  // 내 예약 탭으로 전환
+  const myResBtn = document.querySelector('#inf-tabs .chip:nth-child(2)');
+  if (myResBtn) {
+    showInfTab('myres', myResBtn);
+    setActiveNav(document.querySelector('.nav-btn:nth-child(2)'));
+  }
+  loadMyReservations();
+  resetBook();
+}
+
+// 가입 정보로 예약 폼 자동 채우기
+async function prefillBookingForm() {
+  if (!currentUser) return;
+
+  // 1. 가입 정보로 기본값 설정
+  if (currentUser.platform) {
+    var sel = document.getElementById('b-platform');
+    if (sel) {
+      for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === currentUser.platform) { sel.selectedIndex = i; break; }
+      }
+    }
+  }
+  if (currentUser.accountLink) {
+    var linkEl = document.getElementById('b-link');
+    if (linkEl && !linkEl.value) linkEl.value = currentUser.accountLink;
+  }
+
+  // 2. 이전 예약이 있으면 마지막 예약 정보로 덮어쓰기 (날짜/시간/약국/제품 제외)
+  try {
+    var res = await api('getMyReservations', { email: currentUser.email });
+    var rows = (res.data || []).sort(function(a,b){
+      var na=parseInt((a['예약ID']||'').replace(/\D/g,'')); var nb=parseInt((b['예약ID']||'').replace(/\D/g,'')); return nb-na;
+    });
+    if (rows.length > 0) {
+      var last = rows[0];
+      // 플랫폼
+      var platSel = document.getElementById('b-platform');
+      if (platSel && last['플랫폼']) {
+        for (var j = 0; j < platSel.options.length; j++) {
+          if (platSel.options[j].value === last['플랫폼']) { platSel.selectedIndex = j; break; }
+        }
+      }
+      // 계정링크
+      if (last['계정링크']) {
+        var lEl = document.getElementById('b-link');
+        if (lEl) lEl.value = last['계정링크'];
+      }
+      // 팔로워
+      if (last['팔로워']) {
+        var fEl = document.getElementById('b-followers');
+        if (fEl) fEl.value = last['팔로워'];
+      }
+      // 방문인원
+      if (last['방문인원']) {
+        var partyEl = document.getElementById('b-party');
+        if (partyEl) {
+          for (var k = 0; k < partyEl.options.length; k++) {
+            if (partyEl.options[k].value === last['방문인원']) { partyEl.selectedIndex = k; break; }
+          }
+        }
+      }
+      // 알림수단
+      if (last['알림수단']) {
+        setNotify(last['알림수단']);
+        if (last['알림대상']) {
+          if (last['알림수단'] === 'LINE') {
+            var lnEl = document.getElementById('b-notify-line');
+            if (lnEl) lnEl.value = last['알림대상'];
+          } else if (last['알림수단'] === 'EMAIL') {
+            var emEl = document.getElementById('b-notify-email');
+            if (emEl) emEl.value = last['알림대상'];
+          } else if (last['알림수단'] === 'BOTH') {
+            var parts = last['알림대상'].split('|');
+            var lnEl2 = document.getElementById('b-notify-line');
+            var emEl2 = document.getElementById('b-notify-email');
+            if (lnEl2) lnEl2.value = parts[0] || '';
+            if (emEl2) emEl2.value = parts[1] || '';
+          }
+        }
+      } else {
+        // 이전 예약 없으면 국가별 기본값
+        var lang = getLang(currentUser.country);
+        setNotify(lang === 'zh' ? 'EMAIL' : 'LINE');
+      }
+      return;
+    }
+  } catch(e) {}
+
+  // 3. 예약 없으면 국가별 기본 알림수단
+  var lang2 = getLang(currentUser.country);
+  setNotify(lang2 === 'zh' ? 'EMAIL' : 'LINE');
+}
+
+function setNotify(m) {
+  selNotify = m;
+  document.getElementById('no-line').classList.toggle('selected',  m === 'LINE' || m === 'BOTH');
+  document.getElementById('no-email').classList.toggle('selected', m === 'EMAIL' || m === 'BOTH');
+  document.getElementById('no-both').classList.toggle('selected',  m === 'BOTH');
+  // LINE 입력창 표시/숨김
+  const showLine  = m === 'LINE'  || m === 'BOTH';
+  const showEmail = m === 'EMAIL' || m === 'BOTH';
+  document.getElementById('wrap-line').style.display  = showLine  ? 'block' : 'none';
+  document.getElementById('wrap-email').style.display = showEmail ? 'block' : 'none';
+  // Email 선택 시 가입 이메일 자동 입력
+  if (showEmail) {
+    const emailEl = document.getElementById('b-notify-email');
+    if (emailEl && !emailEl.value && currentUser && currentUser.email) {
+      emailEl.value = currentUser.email;
+    }
+  }
+}
+
+function goBS(n) {
+  if (n === 2 && !selPharmacy) { alert(t('lbl-next') + ': please select a pharmacy'); return; }
+  if (n === 3 && !document.getElementById('b-followers').value) { alert('Please enter followers count'); return; }
+  if (n === 3 && !selProduct) { alert('Please select a product'); return; }
+  if (n === 3) {
+    const lineVal  = document.getElementById('b-notify-line').value.trim();
+    const emailVal = document.getElementById('b-notify-email').value.trim();
+    const needLine  = selNotify === 'LINE'  || selNotify === 'BOTH';
+    const needEmail = selNotify === 'EMAIL' || selNotify === 'BOTH';
+    if (needLine && !lineVal)   { alert('LINE Token을 입력해주세요'); return; }
+    if (needEmail && !emailVal) { alert('이메일을 입력해주세요'); return; }
+  }
+  ['bs1','bs2','bs3'].forEach((id,i) => document.getElementById(id).style.display = i===n-1?'block':'none');
+  if (n === 3) {
+    const ph = pharmacies.find(p => p['약국ID'] === selPharmacy);
+    document.getElementById('b-ph-display').textContent = ph ? '📍 ' + ph['약국명'] : '';
+    loadSlots();
+  }
+  document.getElementById('scroll').scrollTop = 0;
+}
+
+const ALL_SLOTS = ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00'];
+
+function getPharmacySlots(pharmacyId) {
+  const ph = pharmacies.find(p => p['약국ID'] === pharmacyId);
+  if (!ph || !ph['운영시간']) return ALL_SLOTS;
+  // "10:00-18:00" 형식 파싱
+  const m = ph['운영시간'].match(/(\d{1,2}):(\d{2})\s*[-~]\s*(\d{1,2}):(\d{2})/);
+  if (!m) return ALL_SLOTS;
+  const startH = parseInt(m[1]);
+  const endH   = parseInt(m[3]);
+  return ALL_SLOTS.filter(s => {
+    const h = parseInt(s.split(':')[0]);
+    return h >= startH && h < endH;
+  });
+}
+
+async function loadSlots() {
+  const date = document.getElementById('b-date').value;
+  if (!date || !selPharmacy) return;
+  load(true);
+  try {
+    const res = await api('getTakenSlots', { pharmacyId: selPharmacy, date });
+    const taken = res.data || [];
+    const slots = getPharmacySlots(selPharmacy);
+    selSlot = null;
+    document.getElementById('time-slots').innerHTML = slots.length
+      ? slots.map(s => ('\n        <div class="slot'+(taken.includes(s)?' taken':'')+'" onclick="'+(taken.includes(s)?'':'selectSlot(\''+s+'\')')+'">'+(s)+'</div>')
+        ).join('')
+      : '<div style="grid-column:1/-1;text-align:center;color:var(--muted);font-size:13px;padding:12px">운영 시간 정보가 없습니다</div>';
+  } finally { load(false); }
+}
+
+function selectSlot(s) {
+  selSlot = s;
+  document.querySelectorAll('.slot:not(.taken)').forEach(el => {
+    el.classList.toggle('selected', el.textContent.trim() === s);
+  });
+}
+
+// 예약 정보 수집 (모달 표시용)
+function submitReservation() {
+  if (!selSlot) { alert('시간을 선택해주세요'); return; }
+  const ph = pharmacies.find(function(p){ return p['약국ID'] === selPharmacy; });
+  const pr = products.find(function(p){ return p['제품ID'] === selProduct; });
+  if (!ph || !pr) { alert('약국과 제품을 선택해주세요'); return; }
+
+  // 모달 요약 내용 구성
+  var summaryItems = [
+    ['🏥 약국',    ph['약국명']],
+    ['📅 날짜',    fmtDate(document.getElementById('b-date').value)],
+    ['🕐 시간',    selSlot],
+    ['🎁 제품',    (function(){ var tp=products.find(function(p){return p['제품ID']===selProduct;}); return tp?tp['제품명']:pr['제품명']; })()],
+    ['👥 인원',    document.getElementById('b-party').value],
+    ['📱 플랫폼',  document.getElementById('b-platform').value],
+    ['👥 팔로워',  fmtN(parseInt(document.getElementById('b-followers').value)||0)],
+  ];
+  document.getElementById('modal-summary').innerHTML = summaryItems.map(function(item) {
+    return '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--gray)">'
+      + '<span style="font-size:13px;color:var(--muted)">' + item[0] + '</span>'
+      + '<span style="font-size:14px;font-weight:700">' + item[1] + '</span>'
+      + '</div>';
+  }).join('');
+
+  var modal = document.getElementById('book-confirm-modal');
+  modal.style.display = 'flex';
+}
+
+function closeBookModal() {
+  document.getElementById('book-confirm-modal').style.display = 'none';
+}
+
+async function doFinalSubmit() {
+  const ph  = pharmacies.find(function(p){ return p['약국ID'] === selPharmacy; });
+  const pr  = products.find(function(p){ return p['제품ID'] === selProduct; });
+  const btn = document.getElementById('modal-confirm-btn');
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
+  load(true);
+  try {
+    const res = await api('createReservation', {
+      influencerEmail: currentUser.email,
+      name           : currentUser.name,
+      country        : currentUser.country,
+      platform       : document.getElementById('b-platform').value,
+      accountLink    : document.getElementById('b-link').value.trim(),
+      followers      : parseInt(document.getElementById('b-followers').value) || 0,
+      notifyMethod   : selNotify,
+      notifyTarget   : selNotify === 'LINE'  ? document.getElementById('b-notify-line').value.trim()
+                     : selNotify === 'EMAIL' ? document.getElementById('b-notify-email').value.trim()
+                     : document.getElementById('b-notify-line').value.trim() + '|' + document.getElementById('b-notify-email').value.trim(),
+      lang           : getLang(currentUser.country),
+      pharmacyId     : selPharmacy, pharmacyName: ph['약국명'],
+      productId      : selProduct,  productName : pr['제품명'],
+      date           : document.getElementById('b-date').value,
+      time           : selSlot,
+      party          : document.getElementById('b-party').value,
+    });
+    if (!res.ok) throw new Error(res.error);
+    closeBookModal();
+    document.getElementById('done-id').textContent = res.id;
+    document.getElementById('done-summary').innerHTML =
+      [['약국', ph['약국명']], ['날짜', fmtDateTime(document.getElementById('b-date').value, selSlot)],
+       ['제품', pr['제품명']], ['인원', document.getElementById('b-party').value]]
+      .map(function(item){ return '<div class="sum-row"><span class="sum-key">'+(item[0])+'</span><span>'+(item[1])+'</span></div>'; }).join('');
+    document.getElementById('book-form').style.display = 'none';
+    document.getElementById('book-done').style.display = 'block';
+    document.getElementById('scroll').scrollTop = 0;
+  } catch(e) { closeBookModal(); alert('Error: ' + e.message); }
+  finally { btn.disabled=false; btn.textContent='예약 확정'; load(false); }
+}
+
+function resetBook() {
+  selPharmacy=null; selProduct=null; selSlot=null; curCity=''; curDistrict='';
+  ['b-followers','b-notify-line','b-notify-email'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value='';
+  });
+  document.getElementById('book-form').style.display='block';
+  document.getElementById('book-done').style.display='none';
+  goBS(1); buildCityChips(); renderPharmacies(); renderProducts();
+  prefillBookingForm();
+}
+
+// ── 내 정보 ───────────────────────────────────────────────────
+function loadMyProfile() {
+  const lang = getLang(currentUser.country);
+  const L = I18N[lang] || I18N.en;
+  const el = document.getElementById('myprofile-content');
+  if (!el) return;
+
+  const initial = (currentUser.name||'?')[0].toUpperCase();
+  const countryLabel   = L['lbl-s-country'] || 'Country';
+  const platformLabel  = L['lbl-platform']  || 'Platform';
+  const acctLabel      = L['lbl-s-link']    || 'Account Link';
+  const editLabel      = lang==='ja'?'情報変更':lang==='zh'?'修改信息':'Edit Info';
+  const pwLabel        = lang==='ja'?'パスワード変更':lang==='zh'?'修改密码':'Change Password';
+  const curPwLabel     = lang==='ja'?'現在のパスワード':lang==='zh'?'当前密码':'Current Password';
+  const newPwLabel     = lang==='ja'?'新しいパスワード':lang==='zh'?'新密码':'New Password';
+  const confirmLabel   = lang==='ja'?'確認':lang==='zh'?'确认':'Confirm';
+  const saveLabel      = lang==='ja'?'保存':lang==='zh'?'保存':'Save';
+  const changeLabel    = lang==='ja'?'変更':lang==='zh'?'修改':'Change';
+
+  // URL에서 @아이디 추출 (예: https://instagram.com/rejuall_kr → @rejuall_kr)
+  function extractHandle(url) {
+    if (!url) return '';
+    var clean = url.replace(/\/$/, ''); // 끝 슬래시 제거
+    var parts = clean.split('/');
+    var last  = parts[parts.length - 1];
+    return last ? '@' + last : url;
+  }
+
+  const acctLink = currentUser.accountLink
+    ? '<a href="' + currentUser.accountLink + '" target="_blank" '
+      + 'style="color:var(--blue);font-weight:700;text-decoration:none;word-break:keep-all">'
+      + extractHandle(currentUser.accountLink)
+      + '</a>'
+    : '-';
+
+  const rows = [
+    [countryLabel,  currentUser.country  || '-'],
+    [platformLabel, currentUser.platform || '-'],
+    [acctLabel,     acctLink],
+  ].map(function(item) {
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--gray)">'
+      + '<span style="font-size:13px;color:var(--muted);font-weight:600">' + item[0] + '</span>'
+      + '<span style="font-size:14px;font-weight:600;text-align:right;max-width:60%">' + item[1] + '</span>'
+      + '</div>';
+  }).join('');
+
+  el.innerHTML =
+    '<div class="li" style="padding:0;overflow:hidden;margin-bottom:12px">'
+    + '<div style="background:var(--blue);padding:24px 20px;text-align:center">'
+    + '<div style="width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#fff;margin:0 auto 10px">' + initial + '</div>'
+    + '<div style="font-size:18px;font-weight:800;color:#fff">' + (currentUser.name||'') + '</div>'
+    + '<div style="font-size:13px;color:rgba(255,255,255,.75);margin-top:4px">' + (currentUser.email||'') + '</div>'
+    + '</div>'
+    + '<div style="padding:14px 16px">' + rows + '</div>'
+    + '</div>'
+
+    + '<div class="card">'
+    + '<div class="card-title">' + editLabel + '</div>'
+    + '<div class="fg"><label class="fl">' + (L['lbl-s-name']||'Name') + '</label>'
+    + '<input type="text" id="profile-name" value="' + (currentUser.name||'') + '"></div>'
+    + '<div class="fg"><label class="fl">' + (L['lbl-s-country']||'Country') + '</label>'
+    + '<select id="profile-country">'
+    + ['Japan','China','Taiwan','Hong Kong','Thailand','Singapore','Vietnam','USA','Other'].map(function(c){
+        return '<option value="' + c + '"' + (currentUser.country===c?' selected':'') + '>' + c + '</option>';
+      }).join('')
+    + '</select></div>'
+    + '<div class="fg"><label class="fl">' + (L['lbl-platform']||'Platform') + '</label>'
+    + '<select id="profile-platform">'
+    + ['Instagram','TikTok','YouTube','Xiaohongshu','Weibo'].map(function(p){
+        return '<option value="' + p + '"' + (currentUser.platform===p?' selected':'') + '>' + p + '</option>';
+      }).join('')
+    + '</select></div>'
+    + '<div class="fg"><label class="fl">' + (L['lbl-s-link']||'Account Link') + '</label>'
+    + '<input type="url" id="profile-link" placeholder="https://" value="' + (currentUser.accountLink||'') + '"></div>'
+    + '<div id="profile-alert"></div>'
+    + '<button class="btn btn-primary" onclick="saveMyProfile()" style="margin-top:4px">' + saveLabel + '</button>'
+    + '</div>'
+
+    + '<div class="card">'
+    + '<div class="card-title">' + pwLabel + '</div>'
+    + '<div class="fg"><label class="fl">' + curPwLabel + '</label>'
+    + '<div class="pw-wrap"><input type="password" id="inf-pw-current" autocomplete="current-password"><button class="pw-eye" type="button" onclick="togglePw(\'inf-pw-current\',event.currentTarget)" tabindex="-1">\uD83D\uDC41</button></div></div>'
+    + '<div class="fg"><label class="fl">' + newPwLabel + '</label>'
+    + '<div class="pw-wrap"><input type="password" id="inf-pw-new" autocomplete="new-password"><button class="pw-eye" type="button" onclick="togglePw(\'inf-pw-new\',event.currentTarget)" tabindex="-1">\uD83D\uDC41</button></div></div>'
+    + '<div class="fg"><label class="fl">' + confirmLabel + '</label>'
+    + '<div class="pw-wrap"><input type="password" id="inf-pw-new2" autocomplete="new-password"><button class="pw-eye" type="button" onclick="togglePw(\'inf-pw-new2\',event.currentTarget)" tabindex="-1">\uD83D\uDC41</button></div></div>'
+    + '<div id="inf-pw-alert"></div>'
+    + '<button class="btn btn-ghost" onclick="changeInfPassword()" style="margin-top:4px">' + changeLabel + '</button>'
+    + '</div>';
+}
+
+async function saveMyProfile() {
+  var name     = document.getElementById('profile-name')    ? document.getElementById('profile-name').value.trim()    : currentUser.name;
+  var country  = document.getElementById('profile-country') ? document.getElementById('profile-country').value         : currentUser.country;
+  var platform = document.getElementById('profile-platform')? document.getElementById('profile-platform').value        : currentUser.platform;
+  var link     = document.getElementById('profile-link')    ? document.getElementById('profile-link').value.trim()     : currentUser.accountLink;
+  var alertFn  = function(msg, type) {
+    type = type || 'ok';
+    var el = document.getElementById('profile-alert');
+    el.innerHTML = '<div class="alert alert-'+type+'" style="margin-bottom:10px">'+msg+'</div>';
+    setTimeout(function(){ el.innerHTML=''; }, 3000);
+  };
+  if (!name) { alertFn('이름을 입력해주세요', 'err'); return; }
+  load(true);
+  try {
+    var res = await api('updateInfluencerProfile', {
+      email: currentUser.email, name: name, country: country, platform: platform, accountLink: link,
+    });
+    if (!res.ok) throw new Error(res.error);
+    currentUser.name     = name;
+    currentUser.country  = country;
+    currentUser.platform = platform;
+    currentUser.accountLink = link;
+    saveSession(currentUser);
+    document.getElementById('user-name').textContent = name;
+    alertFn(getLang(currentUser.country)==='ja'?'保存しました':getLang(currentUser.country)==='zh'?'已保存':'저장되었습니다', 'ok');
+    // 프로필 카드 새로고침
+    loadMyProfile();
+  } catch(e) { alertFn('Error: ' + e.message, 'err'); }
+  finally { load(false); }
+}
+
+async function changeInfPassword() {
+  const current = document.getElementById('inf-pw-current').value;
+  const newPw   = document.getElementById('inf-pw-new').value;
+  const newPw2  = document.getElementById('inf-pw-new2').value;
+  const L = getLang(currentUser.country);
+  const alertEl = (msg, type='err') => {
+    const el = document.getElementById('inf-pw-alert');
+    el.innerHTML = ('<div class="alert alert-'+(type)+'" style="margin-bottom:10px">'+(msg)+'</div>');
+    setTimeout(() => el.innerHTML='', 4000);
+  };
+  if (!current)        { alertEl(L==='ja'?'現在のパスワードを入力':L==='zh'?'请输入当前密码':'Enter current password'); return; }
+  if (newPw.length < 6){ alertEl(L==='ja'?'6文字以上':L==='zh'?'至少6位':'Min 6 characters'); return; }
+  if (newPw !== newPw2){ alertEl(L==='ja'?'パスワードが一致しません':L==='zh'?'密码不一致':'Passwords do not match'); return; }
+  load(true);
+  try {
+    const res = await api('changePassword', { email: currentUser.email, currentPassword: current, newPassword: newPw });
+    if (!res.ok) throw new Error(res.error);
+    alertEl(L==='ja'?'変更しました':L==='zh'?'已修改':'Password changed!', 'ok');
+    ['inf-pw-current','inf-pw-new','inf-pw-new2'].forEach(id => document.getElementById(id).value='');
+  } catch(e) { alertEl('Error: ' + e.message); }
+  finally { load(false); }
+}
+
+// ── 내 예약 ───────────────────────────────────────────────────
+async function loadMyReservations() {
+  load(true);
+  try {
+    const res = await api('getMyReservations', { email: currentUser.email });
+    const rows = res.data || [];
+    const lang = getLang(currentUser.country);
+    const statusMap = (I18N[lang]||I18N.en).status || {};
+    rows.sort(function(a,b){ var na=parseInt((a['예약ID']||'').replace(/\D/g,'')); var nb=parseInt((b['예약ID']||'').replace(/\D/g,'')); return nb-na; });
+
+    if (!rows.length) {
+      var emptyMsg = T('no_res');
+      var emptyHint = T('no_res_hint');
+      document.getElementById('myres-list').innerHTML =
+        '<div class="empty" style="padding:48px 16px">'
+        + '<div style="font-size:32px;margin-bottom:12px">📋</div>'
+        + '<div style="font-weight:700;margin-bottom:6px">' + emptyMsg + '</div>'
+        + '<div style="font-size:13px">' + emptyHint + '</div>'
+        + '</div>';
+      return;
+    }
+
+    var dateLabel = T('date');
+    var timeLabel = T('time');
+    var reasonLabel = T('reason');
+
+    document.getElementById('myres-list').innerHTML = rows.map(function(r) {
+      // pharmacies[] 배열(번역된 데이터)에서 약국 정보 가져오기
+      var ph = pharmacies.find(function(p){ return p['약국ID'] === r['약국ID']; }) || {};
+      // 번역된 약국명 (없으면 원본), 번역된 제품명 (없으면 원본)
+      var phName  = ph['약국명']  || r['약국명'];
+      var prName  = (function(){
+        var pr = products.find(function(p){ return p['제품ID'] === r['제품ID']; });
+        return pr ? pr['제품명'] : r['제품명'];
+      })();
+      var mapBtn = ph['구글맵링크']
+        ? '<a href="' + ph['구글맵링크'] + '" target="_blank" style="flex-shrink:0;width:36px;height:36px;border-radius:50%;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;font-size:16px;text-decoration:none">🗺</a>'
+        : '';
+      var locationText = [ph['도시'], ph['구']].filter(Boolean).join(' ');
+      var reasonHtml = r['사유']
+        ? '<div style="padding:10px 16px;font-size:12px;color:var(--red);border-top:1px solid var(--border)">' + reasonLabel + ': ' + r['사유'] + '</div>'
+        : '';
+      var tags = '<span class="tag">🎁 ' + prName + '</span>'
+        + '<span class="tag">👥 ' + r['방문인원'] + '</span>'
+        + (ph['응대언어'] ? '<span class="tag">🗣 ' + ph['응대언어'] + '</span>' : '')
+        + (ph['운영시간'] ? '<span class="tag">🕐 ' + ph['운영시간'] + '</span>' : '');
+
+      var cancelBtn = '';
+      if (r['상태'] === '승인대기' || r['상태'] === '승인완료') {
+        cancelBtn = '<div style="padding:0 16px 14px">'
+          + '<button class="btn btn-ghost" style="color:var(--red);border-color:var(--red);font-size:13px;min-height:40px" '
+          + 'onclick="cancelMyReservation(\'' + r['예약ID'] + '\',\'' + r['상태'] + '\')">'
+          + T('cancel_btn') + '</button></div>';
+      }
+
+      return '<div class="li" style="padding:0;overflow:hidden">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;background:var(--gray);border-bottom:1px solid var(--border)">'
+        + '<span style="font-size:11px;font-weight:700;color:var(--muted)">' + r['예약ID'] + '</span>'
+        + badge(r['상태'], statusMap) + '</div>'
+        + '<div style="padding:14px 16px;border-bottom:1px solid var(--gray)">'
+        + '<div style="display:flex;align-items:center;gap:10px">'
+        + '<span style="font-size:22px">🏥</span>'
+        + '<div style="flex:1;min-width:0">'
+        + '<div style="font-size:16px;font-weight:800">' + phName + '</div>'
+        + (locationText ? '<div style="font-size:12px;color:var(--muted);margin-top:2px">📍 ' + locationText + '</div>' : '')
+        + (ph['주소'] ? '<div style="font-size:12px;color:var(--muted);margin-top:1px">' + ph['주소'] + '</div>' : '')
+        + '</div>' + mapBtn + '</div></div>'
+        + '<div style="padding:14px 16px">'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">'
+        + '<div style="background:var(--gray);border-radius:8px;padding:10px">'
+        + '<div style="font-size:11px;color:var(--muted);margin-bottom:3px">' + dateLabel + '</div>'
+        + '<div style="font-size:14px;font-weight:700">' + fmtDate(r['방문날짜']) + '</div></div>'
+        + '<div style="background:var(--gray);border-radius:8px;padding:10px">'
+        + '<div style="font-size:11px;color:var(--muted);margin-bottom:3px">' + timeLabel + '</div>'
+        + '<div style="font-size:14px;font-weight:700;color:var(--blue)">' + r['방문시간'] + '</div></div></div>'
+        + '<div style="display:flex;gap:8px;flex-wrap:wrap">' + tags + '</div></div>'
+        + cancelBtn
+        + reasonHtml + '</div>';
+    }).join('');
+  } finally { load(false); }
+}
+
+async function cancelMyReservation(id, status) {
+  var lang = getLang(currentUser.country);
+  var msg = T('cancel_confirm');
+  if (!confirm(msg)) return;
+  load(true);
+  try {
+    var res = await api('influencerCancel', { id: id, status: status });
+    if (!res.ok) throw new Error(res.error);
+    showToast(T('cancelled'), 'ok');
+    loadMyReservations();
+  } catch(e) { alert('오류: ' + e.message); }
+  finally { load(false); }
+}
+
+// ════════════════════════════════════════════════════════════
+//  매니저 / 관리자 빠른 접속
+// ════════════════════════════════════════════════════════════
+function quickLogin(role) {
+  // 이메일/비밀번호 입력창을 해당 역할 기본값으로 채우고 커서 이동
+  const defaults = {
+    manager: 'manager@brand.com',
+    admin  : 'admin@brand.com',
+  };
+  const emailEl = document.getElementById('l-email');
+  const pwEl    = document.getElementById('l-pw');
+  if (emailEl) emailEl.value = defaults[role] || '';
+  if (pwEl)    { pwEl.value = ''; pwEl.focus(); }
+  // 안내 토스트
+  const names = { manager:'매니저', admin:'관리자' };
+  const el = document.getElementById('login-alert');
+  el.innerHTML = ('<div class="alert alert-info" style="margin-bottom:12px">'+(names[role])+' 이메일이 입력되었습니다. 비밀번호를 입력하세요.</div>');
+  setTimeout(() => el.innerHTML = '', 4000);
+}
+
+async function loadAllRes() {
+  load(true);
+  try {
+    const res = await api('getReservations', allFilter ? { status: allFilter } : {});
+    allRes = (res.data || []).sort(function(a,b){ var na=parseInt((a['예약ID']||'').replace(/\D/g,'')); var nb=parseInt((b['예약ID']||'').replace(/\D/g,'')); return nb-na; });
+    renderAllRes();
+  } finally { load(false); }
+}
+
+function setAllFilter(f, el) {
+  allFilter = f;
+  document.querySelectorAll('#all-status-chips .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderAllRes();
+}
+
+function renderAllRes() {
+  const rows = allFilter ? allRes.filter(r => r['상태'] === allFilter) : allRes;
+  document.getElementById('all-list').innerHTML = rows.length ? rows.map(r => ('\n    <div class="li">\n      <div class="li-head">\n        <div>\n          <div class="li-id">'+(r['예약ID'])+'</div>\n          <div class="li-name">'+(r['이름'])+' <span class="tag">'+(r['국가'])+'</span></div>\n          <div class="li-sub">'+(r['약국명'])+' · '+(fmtDateTime(r['방문날짜'],r['방문시간']))+'</div>\n          <div class="li-sub">'+(r['플랫폼'])+' · '+(fmtN(r['팔로워']))+' · '+(r['방문인원'])+'</div>\n          <div class="li-sub">'+(r['제품명'])+'</div>\n        </div>\n        <div style="text-align:right;flex-shrink:0">\n          '+(badge(r['상태']))+'\n          <div style="font-size:11px;color:var(--muted);margin-top:4px">'+(r['생성일']||'')+'</div>\n        </div>\n      </div>\n      '+(r['사유'] ? ('<div style="font-size:12px;color:var(--red);margin-top:6px;padding-top:6px;border-top:1px solid var(--gray)">'+T('reason')+': '+(r['사유'])+'</div>') : '')+'\n    </div>')).join('') : '<div class="empty">'+ T('no_res') +'</div>';
+}
+
+async function loadMgrStats() {
+  try {
+    const res = await api('getReservations', {});
+    const data = res.data || [];
+    const c = s => data.filter(r => r['상태'] === s).length;
+    const el = document.getElementById('mgr-stat-grid');
+    if (!el) return;
+    el.innerHTML = [
+      ['전체', data.length, ''],
+      ['승인대기', c('승인대기'), 'var(--blue)'],
+      ['방문완료', c('방문완료'), 'var(--green)'],
+      ['노쇼', c('노쇼'), 'var(--red)'],
+    ].map(([l,v,c]) => ('\n      <div class="stat-card">\n        <div class="stat-label">'+(l)+'</div>\n        <div class="stat-val" style="color:'+(c||'var(--text)')+'">'+(v)+'</div>\n      </div>')).join('');
+  } catch(e) {}
+}
+
+// ════════════════════════════════════════════════════════════
+//  관리자 — 대시보드
+// ════════════════════════════════════════════════════════════
+async function loadDashboard() {
+  load(true);
+  try {
+    const res = await api('getStats');
+    const d   = res.data;
+    document.getElementById('stat-grid').innerHTML = [
+      ['전체 예약', d.total, ''],
+      ['승인 완료', d.approved, 'var(--green)'],
+      ['방문 완료', d.visited, 'var(--blue)'],
+      ['노쇼', d.noshow, 'var(--red)'],
+    ].map(([l,v,c]) => ('<div class="stat-card"><div class="stat-label">'+(l)+'</div><div class="stat-val" style="color:'+(c||'var(--text)')+'">'+(v)+'</div></div>')).join('');
+    renderBarChart('chart-ph', d.byPharmacy, 'var(--blue)');
+    renderBarChart('chart-platform', d.byPlatform, 'var(--green)');
+    renderBarChart('chart-country', d.byCountry, '#F59E0B');
+  } finally { load(false); }
+}
+
+function renderBarChart(id, data, color) {
+  const max = Math.max(...Object.values(data), 1);
+  document.getElementById(id).innerHTML = Object.entries(data).sort((a,b)=>b[1]-a[1]).map(([k,v]) => ('\n    <div class="bar-row">\n      <div class="bar-meta"><span>'+(k)+'</span><span>'+(v)+'건</span></div>\n      <div class="bar-track"><div class="bar-fill" style="width:'+(Math.round(v/max*100))+'%;background:'+(color)+'"></div></div>\n    </div>')).join('') || '<div class="empty" style="padding:12px">데이터 없음</div>';
+}
+
+// ── 약국 관리 ─────────────────────────────────────────────────
+async function loadPhAdminList() {
+  const res = await api('getPharmaciesAdmin');
+  const rows = res.data || [];
+  document.getElementById('ph-admin-list').innerHTML = rows.map(p => ('\n    <div class="li">\n      <div class="li-head">\n        <div>\n          <div class="li-name">'+(p['약국명'])+'</div>\n          <div class="li-sub">'+(p['도시'])+(p['구'] ? ' · ' + p['구'] : '')+' · '+(p['연락처']||'')+'</div>\n          <div class="li-sub">'+(p['응대언어']||'')+(p['운영시간'] ? ' · 🕐 ' + p['운영시간'] : '')+'</div>\n        </div>\n        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">\n          <span class="li-id">'+(p['약국ID'])+'</span>\n          <div style="display:flex;gap:6px">\n            <button class="btn btn-ghost btn-sm" onclick=\'editPh('+(JSON.stringify(p))+')\'>수정</button>\n            <button class="btn btn-danger btn-sm" onclick="delPh(\''+(p['약국ID'])+'\')">삭제</button>\n          </div>\n        </div>\n      </div>\n    </div>')).join('') || '<div class="empty">약국 없음</div>';
+}
+
+function openPhForm() {
+  document.getElementById('ph-form').style.display = 'block';
+  document.getElementById('scroll').scrollTop = 9999;
+  // 신규 추가 시 그리드 초기화 (editPh에서 이미 설정된 경우엔 덮어쓰지 않음)
+  if (!document.getElementById('pf-id').value) {
+    renderPfHoursGrid('');
+  }
+}
+function closePhForm() { document.getElementById('ph-form').style.display='none'; clearPhForm(); }
+function clearPhForm() {
+  ['pf-id','pf-name','pf-city','pf-district','pf-phone','pf-hours','pf-addr','pf-lang','pf-kakao','pf-sms','pf-map']
+    .forEach(id => { var el = document.getElementById(id); if (el) el.value=''; });
+  pfSelectedHours = new Set();
+  pfSelectedDays  = new Set();
+  renderPfHoursGrid('');
+}
+
+// 어드민 약국 폼 전용 시간/요일 그리드
+var pfSelectedHours = new Set();
+var pfSelectedDays  = new Set();
+
+function renderPfDaysGrid() {
+  var grid = document.getElementById('pf-days-grid');
+  if (!grid) return;
+  grid.innerHTML = DAY_SLOTS.map(function(d) {
+    var on = pfSelectedDays.has(d);
+    return '<div onclick="togglePfDay(\'' + d + '\')" style="'
+      + 'padding:10px 4px;border-radius:8px;border:1.5px solid ' + (on ? 'var(--blue)' : 'var(--border)') + ';'
+      + 'background:' + (on ? 'var(--blue-bg)' : 'var(--white)') + ';'
+      + 'cursor:pointer;font-size:13px;font-weight:700;text-align:center;'
+      + 'color:' + (on ? 'var(--blue)' : (d==='토'?'#1a73e8':d==='일'?'#e53935':'var(--muted)')) + ';transition:all .15s">'
+      + d + '</div>';
+  }).join('');
+}
+
+function togglePfDay(d) {
+  if (pfSelectedDays.has(d)) pfSelectedDays.delete(d);
+  else pfSelectedDays.add(d);
+  renderPfDaysGrid();
+  updatePfHoursText();
+}
+
+function updatePfHoursText() {
+  var sorted = HOUR_SLOTS.filter(function(s){ return pfSelectedHours.has(s); });
+  var timeStr = '';
+  if (sorted.length > 0) {
+    timeStr = sorted[0] + '-' + (parseInt(sorted[sorted.length-1]) + 1) + ':00';
+  }
+  var dayStr = '';
+  if (pfSelectedDays.size > 0) {
+    var orderedDays = DAY_SLOTS.filter(function(d){ return pfSelectedDays.has(d); });
+    if (orderedDays.length >= 2) {
+      var allIdxs = orderedDays.map(function(d){ return DAY_SLOTS.indexOf(d); });
+      var isConsec = allIdxs.every(function(v,i){ return i===0||v===allIdxs[i-1]+1; });
+      dayStr = isConsec ? orderedDays[0]+'~'+orderedDays[orderedDays.length-1] : orderedDays.join(',');
+    } else {
+      dayStr = orderedDays[0] || '';
+    }
+  }
+  var el = document.getElementById('pf-hours');
+  if (el) el.value = [dayStr, timeStr].filter(Boolean).join(' ');
+}
+
+function renderPfHoursGrid(current) {
+  pfSelectedHours = new Set();
+  pfSelectedDays  = new Set();
+  if (current) {
+    var tm = current.match(/(\d{1,2}):(\d{2})\s*[-~]\s*(\d{1,2}):(\d{2})/);
+    if (tm) {
+      for (var h = parseInt(tm[1]); h < parseInt(tm[3]); h++) pfSelectedHours.add(h + ':00');
+    }
+    var dm = current.match(/([월화수목금토일~,]+)/);
+    if (dm) {
+      var dayPart = dm[1];
+      if (dayPart.indexOf('~') !== -1) {
+        var parts = dayPart.split('~');
+        var s = DAY_SLOTS.indexOf(parts[0]), e = DAY_SLOTS.indexOf(parts[1]);
+        if (s !== -1 && e !== -1) for (var i = s; i <= e; i++) pfSelectedDays.add(DAY_SLOTS[i]);
+      } else {
+        dayPart.split(',').join('').split('').forEach(function(d){ if (DAY_SLOTS.indexOf(d)!==-1) pfSelectedDays.add(d); });
+      }
+    }
+  }
+  var grid = document.getElementById('pf-hours-grid');
+  if (!grid) return;
+  grid.innerHTML = HOUR_SLOTS.map(function(h) {
+    var on = pfSelectedHours.has(h);
+    return '<div onclick="togglePfHour(\'' + h + '\')" style="'
+      + 'padding:10px 4px;border-radius:8px;border:1.5px solid ' + (on ? 'var(--blue)' : 'var(--border)') + ';'
+      + 'background:' + (on ? 'var(--blue-bg)' : 'var(--white)') + ';'
+      + 'cursor:pointer;font-size:13px;font-weight:600;text-align:center;'
+      + 'color:' + (on ? 'var(--blue)' : 'var(--muted)') + ';transition:all .15s">'
+      + h + '</div>';
+  }).join('');
+  renderPfDaysGrid();
+}
+
+function togglePfHour(h) {
+  if (pfSelectedHours.has(h)) pfSelectedHours.delete(h);
+  else pfSelectedHours.add(h);
+  updatePfHoursText();
+  renderPfHoursGrid(document.getElementById('pf-hours').value);
+}
+
+function editPh(p) {
+  document.getElementById('ph-form-title').textContent = '약국 수정';
+  document.getElementById('pf-id').value       = p['약국ID'];
+  document.getElementById('pf-name').value     = p['약국명'];
+  document.getElementById('pf-city').value     = p['도시'];
+  document.getElementById('pf-district').value = p['구']        || '';
+  document.getElementById('pf-phone').value    = formatPhoneStr(p['연락처']);
+  document.getElementById('pf-sms').value      = formatPhoneStr(p['SMS번호'] || '');
+  document.getElementById('pf-hours').value    = p['운영시간']  || '';
+  document.getElementById('pf-addr').value     = p['주소'];
+  document.getElementById('pf-lang').value     = p['응대언어'];
+  document.getElementById('pf-kakao').value    = p['카카오채널ID'];
+  document.getElementById('pf-map').value      = p['구글맵링크'] ||
+    (p['주소'] ? 'https://maps.google.com/?q=' + encodeURIComponent(p['주소']) : '');
+  renderPfHoursGrid(p['운영시간'] || '');
+  openPhForm();
+}
+
+async function savePharmacy() {
+  const name = document.getElementById('pf-name').value.trim();
+  if (!name) { alert('약국명을 입력하세요'); return; }
+  load(true);
+  try {
+    await api('savePharmacy', {
+      '약국ID'      : document.getElementById('pf-id').value,
+      '약국명'      : name,
+      '도시'        : document.getElementById('pf-city').value,
+      '구'          : document.getElementById('pf-district').value,
+      '주소'        : document.getElementById('pf-addr').value,
+      '응대언어'    : document.getElementById('pf-lang').value,
+      '연락처'      : document.getElementById('pf-phone').value,
+      '카카오채널ID': document.getElementById('pf-kakao').value,
+      'SMS번호'     : document.getElementById('pf-sms').value,
+      '구글맵링크'  : document.getElementById('pf-map').value,
+      '운영시간'    : document.getElementById('pf-hours').value,
+    });
+    closePhForm(); loadPhAdminList(); showToast('저장 완료', 'ok');
+  } finally { load(false); }
+}
+
+async function delPh(id) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  load(true);
+  try { await api('deletePharmacy', { id }); loadPhAdminList(); showToast('삭제 완료', 'ok'); }
+  finally { load(false); }
+}
+
+// ── 제품 관리 ─────────────────────────────────────────────────
+async function loadPrAdminList() {
+  const res = await api('getProductsAdmin');
+  document.getElementById('pr-admin-list').innerHTML = (res.data||[]).map(p => ('\n    <div class="li">\n      <div class="li-head">\n        <div><div class="li-name">'+(p['제품명'])+'</div><div class="li-sub">증정 '+(p['증정수량'])+'개</div></div>\n        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">\n          <span class="li-id">'+(p['제품ID'])+'</span>\n          <div style="display:flex;gap:6px">\n            <button class="btn btn-ghost btn-sm" onclick=\'editPr('+(JSON.stringify(p))+')\'>수정</button>\n            <button class="btn btn-danger btn-sm" onclick="delPr(\''+(p['제품ID'])+'\')">삭제</button>\n          </div>\n        </div>\n      </div>\n    </div>')).join('') || '<div class="empty">제품 없음</div>';
+}
+
+function openPrForm()  { document.getElementById('pr-form').style.display='block'; document.getElementById('scroll').scrollTop=9999; }
+function closePrForm() { document.getElementById('pr-form').style.display='none'; ['prf-id','prf-name','prf-qty','prf-link'].forEach(id=>document.getElementById(id).value=''); }
+
+function editPr(p) {
+  document.getElementById('pr-form-title').textContent = '제품 수정';
+  document.getElementById('prf-id').value   = p['제품ID'];
+  document.getElementById('prf-name').value = p['제품명'];
+  document.getElementById('prf-qty').value  = p['증정수량'];
+  document.getElementById('prf-link').value = p['가이드링크'];
+  openPrForm();
+}
+
+async function saveProduct() {
+  const name = document.getElementById('prf-name').value.trim();
+  if (!name) { alert('제품명을 입력하세요'); return; }
+  load(true);
+  try {
+    await api('saveProduct', { '제품ID': document.getElementById('prf-id').value, '제품명': name, '증정수량': document.getElementById('prf-qty').value, '가이드링크': document.getElementById('prf-link').value });
+    closePrForm(); loadPrAdminList(); showToast('저장 완료', 'ok');
+  } finally { load(false); }
+}
+
+async function delPr(id) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  load(true);
+  try { await api('deleteProduct', { id }); loadPrAdminList(); showToast('삭제 완료', 'ok'); }
+  finally { load(false); }
+}
+
+// ── 담당자 관리 ───────────────────────────────────────────────
+async function loadMgrAdminList() {
+  const res = await api('getManagers');
+  document.getElementById('mgr-admin-list').innerHTML = (res.data||[]).map(m => ('\n    <div class="li">\n      <div class="li-head">\n        <div><div class="li-name">'+(m['국가'])+'</div><div class="li-sub">'+(m['담당자명'])+' · '+(m['이메일'])+'</div></div>\n        <div style="display:flex;gap:6px">\n          <button class="btn btn-ghost btn-sm" onclick=\'editMgr('+(JSON.stringify(m))+')\'>수정</button>\n          <button class="btn btn-danger btn-sm" onclick="delMgr(\''+(m['국가'])+'\')">삭제</button>\n        </div>\n      </div>\n    </div>')).join('') || '<div class="empty">담당자 없음</div>';
+}
+
+function openMgrForm()  { document.getElementById('mgr-form').style.display='block'; }
+function closeMgrForm() { document.getElementById('mgr-form').style.display='none'; }
+
+function editMgr(m) {
+  document.getElementById('mgr-form-title').textContent = '담당자 수정';
+  document.getElementById('mf-country').value = m['국가'];
+  document.getElementById('mf-name').value    = m['담당자명'];
+  document.getElementById('mf-email').value   = m['이메일'];
+  openMgrForm();
+}
+
+async function saveManager() {
+  load(true);
+  try {
+    await api('saveManager', { '국가': document.getElementById('mf-country').value, '담당자명': document.getElementById('mf-name').value, '이메일': document.getElementById('mf-email').value });
+    closeMgrForm(); loadMgrAdminList(); showToast('저장 완료', 'ok');
+  } finally { load(false); }
+}
+
+async function delMgr(country) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  load(true);
+  try { await api('deleteManager', { country }); loadMgrAdminList(); showToast('삭제 완료', 'ok'); }
+  finally { load(false); }
+}
+
+// ── API 설정 ──────────────────────────────────────────────────
+async function loadSettings() {
+  const res = await api('getSettings');
+  const map = Object.fromEntries((res.data||[]).map(r => [r['키'], r['값']]));
+  document.getElementById('s-kakao-key').value    = map['KAKAO_API_KEY']||'';
+  document.getElementById('s-kakao-uid').value    = map['KAKAO_USER_ID']||'';
+  document.getElementById('s-kakao-sender').value = map['KAKAO_SENDER_KEY']||'';
+  document.getElementById('s-kakao-tpl').value    = map['KAKAO_TPL_CODE']||'';
+  document.getElementById('s-sms-key').value      = map['ALIGO_API_KEY']||'';
+  document.getElementById('s-sms-uid').value      = map['ALIGO_USER_ID']||'';
+  document.getElementById('s-sms-sender').value   = map['ALIGO_SENDER']||'';
+  document.getElementById('s-default-email').value = map['DEFAULT_MANAGER_EMAIL']||'';
+  document.getElementById('s-gemini-key').value    = map['GEMINI_API_KEY']||'';
+}
+
+async function saveSettings() {
+  load(true);
+  try {
+    await api('saveSettings', {
+      'KAKAO_API_KEY': document.getElementById('s-kakao-key').value,
+      'KAKAO_USER_ID': document.getElementById('s-kakao-uid').value,
+      'KAKAO_SENDER_KEY': document.getElementById('s-kakao-sender').value,
+      'KAKAO_TPL_CODE': document.getElementById('s-kakao-tpl').value,
+      'ALIGO_API_KEY': document.getElementById('s-sms-key').value,
+      'ALIGO_USER_ID': document.getElementById('s-sms-uid').value,
+      'ALIGO_SENDER': document.getElementById('s-sms-sender').value,
+      'DEFAULT_MANAGER_EMAIL': document.getElementById('s-default-email').value,
+      'GEMINI_API_KEY': document.getElementById('s-gemini-key').value,
+    });
+    // Gemini 키 변경 시 번역 캐시 초기화
+    _transCache = {};
+    showToast('설정 저장 완료', 'ok');
+  } finally { load(false); }
+}
+
+// ── 유틸 ──────────────────────────────────────────────────────
+function fmtN(n) { n=parseInt(n)||0; return n>=10000?Math.round(n/10000)+'만':n.toLocaleString(); }
+
+const BADGE_CLASS = {
+  '매니저대기':'b-wait','승인대기':'b-pending','승인완료':'b-approved',
+  '비승인':'b-rejected','방문확정':'b-confirmed','노쇼예정':'b-noshow',
+  '방문완료':'b-visited','노쇼':'b-noshow','취소':'b-cancelled'
+};
+
+function badge(s, statusMap) {
+  const label = (statusMap && statusMap[s]) ? statusMap[s] : s;
+  return ('<span class="badge '+(BADGE_CLASS[s]||'b-wait')+'">'+(label)+'</span>');
+}
+
+function showToast(msg, type='ok') {
+  const el = document.createElement('div');
+  el.className = 'alert alert-' + type;
+  el.style.cssText = 'position:fixed;top:calc(env(safe-area-inset-top,0px)+16px);left:16px;right:16px;z-index:9999';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+</script>
+</body>
+</html>
