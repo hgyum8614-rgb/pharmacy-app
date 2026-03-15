@@ -1237,12 +1237,10 @@ function applyTranslationsToData() {
 
 async function api(action, params = {}) {
   if (USE_FETCH) {
-    // Cloudflare Worker 프록시를 통해 POST 요청
-    const r = await fetch(WEB_APP_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: action, params: params })
-    });
+    // GET 방식 — Apps Script CORS 우회 (doGet에서 payload 파라미터 처리)
+    var payload = encodeURIComponent(JSON.stringify({action: action, params: params}));
+    var url = WEB_APP_URL + '?payload=' + payload;
+    const r = await fetch(url, { method: 'GET', redirect: 'follow' });
     const text = await r.text();
     try { return JSON.parse(text); }
     catch(e) { throw new Error('Parse error: ' + text.slice(0, 200)); }
