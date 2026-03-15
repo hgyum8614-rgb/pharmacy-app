@@ -468,18 +468,6 @@ input[readonly]{background:var(--gray);color:var(--muted)}
       </div>
 
       <!-- 예약 확인 모달 -->
-      <div id="book-confirm-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;display:none;align-items:flex-end;justify-content:center">
-        <div style="background:var(--white);border-radius:16px 16px 0 0;width:100%;max-width:480px;padding:24px 20px;padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))">
-          <div style="font-size:17px;font-weight:800;margin-bottom:4px" id="lbl-modal-title">이대로 예약하시겠습니까?</div>
-          <div style="font-size:13px;color:var(--muted);margin-bottom:18px" id="lbl-modal-sub">아래 내용을 확인해주세요</div>
-          <div id="modal-summary"></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px">
-            <button class="btn btn-ghost" id="lbl-modal-edit" onclick="closeBookModal()">수정하기</button>
-            <button class="btn btn-primary" id="modal-confirm-btn" onclick="doFinalSubmit()" id="lbl-modal-ok">예약 확정</button>
-          </div>
-        </div>
-      </div>
-
       <!-- 내 예약 -->
       <div id="tab-myres" class="tab">
         <div id="myres-list"><div class="empty" id="lbl-loading">Loading...</div></div>
@@ -2931,5 +2919,18 @@ function showToast(msg, type='ok') {
   setTimeout(() => el.remove(), 3000);
 }
 </script>
+<!-- 예약 확인 모달 — body 직접 하위 (overflow:hidden 영향 없음) -->
+<div id="book-confirm-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9997;align-items:flex-end;justify-content:center">
+  <div style="background:var(--white);border-radius:16px 16px 0 0;width:100%;max-width:480px;padding:24px 20px;padding-bottom:calc(24px + env(safe-area-inset-bottom,0px));max-height:90vh;overflow-y:auto">
+    <div style="font-size:17px;font-weight:800;margin-bottom:4px" id="lbl-modal-title">이대로 예약하시겠습니까?</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:18px" id="lbl-modal-sub">아래 내용을 확인해주세요</div>
+    <div id="modal-summary"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px">
+      <button class="btn btn-ghost" id="lbl-modal-edit" onclick="closeBookModal()">수정하기</button>
+      <button class="btn btn-primary" id="modal-confirm-btn" onclick="doFinalSubmit()">예약 확정</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
