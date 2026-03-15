@@ -2995,14 +2995,16 @@ async function handleInstall() {
 }
 
 function initInstallBanner() {
-  if (isPWAInstalled()) return; // PWA 모드면 배너 불필요
-  var isIOS    = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  if (isPWAInstalled()) return;
+  var isIOS     = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  var isAndroid = /Android/.test(navigator.userAgent);
+  var isSafari  = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  // PC는 미노출
+  if (!isIOS && !isAndroid) return;
   if (isIOS && isSafari) {
-    // 사파리: 힌트 배너 표시
     showInstallBanner('safari');
   }
-  // 크롬: beforeinstallprompt 이벤트가 오면 자동으로 showInstallBanner('chrome') 호출됨
+  // 안드로이드 크롬: beforeinstallprompt 이벤트가 오면 자동 표시
 }
 
 // ── 유틸 ──────────────────────────────────────────────────────
