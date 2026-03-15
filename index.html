@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Pharmacy Reservation</title>
+<title>PharmVisit</title>
 <style>
 /* Apps Script iframe 전체화면 강제 */
 html { width:100% !important; height:100% !important; }
@@ -160,7 +160,7 @@ input[readonly]{background:var(--gray);color:var(--muted)}
 /* Login */
 .login-wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;padding-top:max(24px, calc(env(safe-area-inset-top,0px) + 24px));padding-bottom:max(24px, calc(env(safe-area-inset-bottom,0px) + 24px));background:var(--gray)}
 .login-box{background:var(--white);border-radius:16px;border:1px solid var(--border);padding:28px 24px;width:100%;max-width:400px}
-.login-logo{font-size:40px;text-align:center;margin-bottom:10px}
+.login-logo{text-align:center;margin-bottom:10px}
 .login-title{font-size:20px;font-weight:800;text-align:center;margin-bottom:4px}
 .login-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:20px}
 
@@ -232,8 +232,25 @@ input[readonly]{background:var(--gray);color:var(--muted)}
 <div id="login-screen" style="min-height:100vh;overflow-y:auto;-webkit-overflow-scrolling:touch">
   <div class="login-wrap">
     <div class="login-box">
-      <div class="login-logo">💊</div>
-      <div class="login-title" id="login-title">Pharmacy Reservation</div>
+      <div class="login-logo">
+        <svg width="72" height="72" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto">
+          <rect width="72" height="72" rx="16" fill="#2B7CFF"/>
+          <clipPath id="pc"><rect x="13" y="27" width="46" height="18" rx="9"/></clipPath>
+          <rect x="13" y="27" width="23" height="18" rx="0" fill="#ffffff" opacity="0.95" clip-path="url(#pc)"/>
+          <rect x="36" y="27" width="23" height="18" rx="0" fill="#ffffff" opacity="0.3" clip-path="url(#pc)"/>
+          <rect x="13" y="27" width="46" height="18" rx="9" fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.5"/>
+          <line x1="36" y1="29" x2="36" y2="43" stroke="#ffffff" stroke-width="1" opacity="0.4"/>
+          <line x1="53" y1="16" x2="53" y2="24" stroke="#FFD166" stroke-width="2" stroke-linecap="round"/>
+          <line x1="49" y1="20" x2="57" y2="20" stroke="#FFD166" stroke-width="2" stroke-linecap="round"/>
+          <line x1="47" y1="14" x2="50" y2="17" stroke="#FFD166" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="57" y1="14" x2="54" y2="17" stroke="#FFD166" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="18" y1="55" x2="18" y2="60" stroke="#FFD166" stroke-width="1.8" stroke-linecap="round"/>
+          <line x1="15.5" y1="57.5" x2="20.5" y2="57.5" stroke="#FFD166" stroke-width="1.8" stroke-linecap="round"/>
+          <circle cx="58" cy="54" r="2.5" fill="#FFD166"/>
+          <circle cx="52" cy="58" r="1.5" fill="#FFD166" opacity="0.7"/>
+        </svg>
+      </div>
+      <div class="login-title" id="login-title">PharmVisit</div>
       <div class="login-sub" id="login-sub">Sign in to continue</div>
 
       <!-- 언어 선택 -->
@@ -369,7 +386,20 @@ input[readonly]{background:var(--gray);color:var(--muted)}
 <!-- ══ 메인 앱 ═════════════════════════════════════════════ -->
 <div id="main-app" class="app" style="display:none">
   <div class="header">
-    <div class="header-title" id="app-title">💊</div>
+    <div class="header-title" id="app-title" style="display:flex;align-items:center;gap:7px">
+      <svg width="28" height="28" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+        <rect width="72" height="72" rx="16" fill="#2B7CFF"/>
+        <clipPath id="ph"><rect x="13" y="27" width="46" height="18" rx="9"/></clipPath>
+        <rect x="13" y="27" width="23" height="18" fill="#fff" opacity="0.95" clip-path="url(#ph)"/>
+        <rect x="36" y="27" width="23" height="18" fill="#fff" opacity="0.3" clip-path="url(#ph)"/>
+        <rect x="13" y="27" width="46" height="18" rx="9" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.5"/>
+        <line x1="36" y1="29" x2="36" y2="43" stroke="#fff" stroke-width="1" opacity="0.4"/>
+        <line x1="53" y1="16" x2="53" y2="24" stroke="#FFD166" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="49" y1="20" x2="57" y2="20" stroke="#FFD166" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="58" cy="54" r="2.5" fill="#FFD166"/>
+      </svg>
+      PharmVisit
+    </div>
     <div class="header-right">
       <span id="user-name" style="font-weight:600"></span>
       <button class="logout-btn" onclick="doLogout()" id="lbl-logout">Logout</button>
@@ -1931,7 +1961,7 @@ async function initApp() {
     var dateInput = document.getElementById('b-date');
     dateInput.value = today;
     dateInput.min   = today; // 오늘 이전 날짜 선택 불가
-    document.getElementById('app-title').textContent = '💊 Pharmacy';
+    document.getElementById('app-title').lastChild.textContent = ' PharmVisit';
     prefillBookingForm();
     loadMyReservations();
     // 저장된 탭 복원
@@ -1948,11 +1978,11 @@ async function initApp() {
     }
   } else if (role === 'manager') {
     document.getElementById('role-manager').classList.add('active');
-    document.getElementById('app-title').textContent = '💊 예약 현황';
+    document.getElementById('app-title').lastChild.textContent = ' PharmVisit';
     loadAllRes(); loadMgrStats();
   } else if (role === 'admin') {
     document.getElementById('role-admin').classList.add('active');
-    document.getElementById('app-title').textContent = '💊 관리자';
+    document.getElementById('app-title').lastChild.textContent = ' PharmVisit';
     loadDashboard(); loadPhAdminList(); loadPrAdminList(); loadMgrAdminList(); loadSettings();
     // 저장된 탭 복원
     var savedAdmTab = loadTabSession();
@@ -1964,7 +1994,7 @@ async function initApp() {
     }
   } else if (role === 'pharmacy') {
     document.getElementById('role-pharmacy').classList.add('active');
-    document.getElementById('app-title').textContent = '💊 ' + (currentUser.pharmacyName || '약국');
+    document.getElementById('app-title').lastChild.textContent = ' PharmVisit';
     loadPharmacyAdminData();
     // 저장된 탭 복원
     var savedPhTab = loadTabSession();
