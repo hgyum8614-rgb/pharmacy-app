@@ -2803,12 +2803,12 @@ function renderMgrSettleList() {
   var statEl = document.getElementById('settle-stat-grid');
   if (statEl) {
     statEl.innerHTML = [
-      ['방문완료',   monthly.length,   'var(--green)'],
-      ['미정산',     unsettled.length, 'var(--red)'],
-      ['정산완료',   settled.length,   'var(--muted)'],
+      ['방문완료', monthly.length,   'var(--green)'],
+      ['미정산',   unsettled.length, 'var(--red)'],
+      ['정산완료', settled.length,   'var(--muted)'],
     ].map(function(item) {
       return '<div class="stat-card"><div class="stat-label">' + item[0] + '</div>'
-        + '<div class="stat-val" style="color:' + item[1] + '">' + item[2] + '</div></div>';
+        + '<div class="stat-val" style="color:' + item[2] + '">' + item[1] + '</div></div>';
     }).join('');
   }
 
