@@ -536,19 +536,46 @@ input[readonly]{background:var(--gray);color:var(--muted)}
 
     <!-- ── 매니저 화면 (모니터링) ── -->
     <div id="role-manager" class="page">
+
       <!-- 요약 통계 -->
       <div class="stat-grid" id="mgr-stat-grid" style="margin-bottom:12px"></div>
-      <!-- 상태 필터 -->
-      <div class="chips" id="all-status-chips">
-        <div class="chip active" onclick="setAllFilter('',this)">전체</div>
-        <div class="chip" onclick="setAllFilter('승인대기',this)">승인대기</div>
-        <div class="chip" onclick="setAllFilter('승인완료',this)">승인완료</div>
-        <div class="chip" onclick="setAllFilter('방문완료',this)">방문완료</div>
-        <div class="chip" onclick="setAllFilter('노쇼',this)">노쇼</div>
-        <div class="chip" onclick="setAllFilter('비승인',this)">거절</div>
-        <div class="chip" onclick="setAllFilter('취소',this)">취소</div>
+
+      <!-- 월 선택 -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <button onclick="mgrMonthShift(-1)" style="width:36px;height:36px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--white);font-size:16px;cursor:pointer;flex-shrink:0">‹</button>
+        <div id="mgr-month-label" style="flex:1;text-align:center;font-size:15px;font-weight:700"></div>
+        <button onclick="mgrMonthShift(1)" style="width:36px;height:36px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--white);font-size:16px;cursor:pointer;flex-shrink:0">›</button>
+        <button onclick="mgrMonthToday()" style="padding:0 12px;height:36px;border:1px solid var(--blue);border-radius:var(--radius-sm);background:var(--white);color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0">이번달</button>
       </div>
-      <div id="all-list"><div class="empty">로딩 중...</div></div>
+
+      <!-- 탭: 예약현황 / 정산관리 -->
+      <div class="auth-tabs" style="margin-bottom:12px">
+        <button class="auth-tab active" id="mgr-tab-res-btn" onclick="showMgrMainTab('res')">📋 예약 현황</button>
+        <button class="auth-tab" id="mgr-tab-settle-btn" onclick="showMgrMainTab('settle')">💰 정산 관리</button>
+      </div>
+
+      <!-- 예약 현황 탭 -->
+      <div id="mgr-panel-res" class="auth-panel active">
+        <div class="chips" id="all-status-chips">
+          <div class="chip active" onclick="setAllFilter('',this)">전체</div>
+          <div class="chip" onclick="setAllFilter('승인대기',this)">승인대기</div>
+          <div class="chip" onclick="setAllFilter('승인완료',this)">승인완료</div>
+          <div class="chip" onclick="setAllFilter('방문완료',this)">방문완료</div>
+          <div class="chip" onclick="setAllFilter('노쇼',this)">노쇼</div>
+          <div class="chip" onclick="setAllFilter('비승인',this)">거절</div>
+          <div class="chip" onclick="setAllFilter('취소',this)">취소</div>
+        </div>
+        <div id="all-list"><div class="empty">로딩 중...</div></div>
+      </div>
+
+      <!-- 정산 관리 탭 -->
+      <div id="mgr-panel-settle" class="auth-panel">
+        <!-- 정산 요약 -->
+        <div class="stat-grid" id="settle-stat-grid" style="margin-bottom:12px"></div>
+        <!-- 정산 리스트 -->
+        <div id="settle-list"><div class="empty">로딩 중...</div></div>
+      </div>
+
     </div>
 
     <!-- ── 약국 관리자 화면 ── -->
@@ -1989,7 +2016,9 @@ async function initApp() {
   } else if (role === 'manager') {
     document.getElementById('role-manager').classList.add('active');
     document.getElementById('app-title').lastChild.textContent = ' PharmVisit';
-    loadAllRes(); loadMgrStats();
+    _mgrYear  = new Date().getFullYear();
+    _mgrMonth = new Date().getMonth() + 1;
+    loadAllRes();
   } else if (role === 'admin') {
     document.getElementById('role-admin').classList.add('active');
     document.getElementById('app-title').lastChild.textContent = ' PharmVisit';
@@ -2651,12 +2680,66 @@ function quickLogin(role) {
   setTimeout(() => el.innerHTML = '', 4000);
 }
 
+// ── 매니저 — 월/탭 상태 ─────────────────────────────────────
+var _mgrYear  = new Date().getFullYear();
+var _mgrMonth = new Date().getMonth() + 1; // 1~12
+var _mgrMainTab = 'res'; // 'res' | 'settle'
+
+function mgrMonthLabel() {
+  return _mgrYear + '년 ' + _mgrMonth + '월';
+}
+
+function mgrMonthShift(d) {
+  _mgrMonth += d;
+  if (_mgrMonth > 12) { _mgrMonth = 1;  _mgrYear++; }
+  if (_mgrMonth < 1)  { _mgrMonth = 12; _mgrYear--; }
+  var el = document.getElementById('mgr-month-label');
+  if (el) el.textContent = mgrMonthLabel();
+  loadAllRes();
+  renderMgrSettleList();
+}
+
+function mgrMonthToday() {
+  _mgrYear  = new Date().getFullYear();
+  _mgrMonth = new Date().getMonth() + 1;
+  var el = document.getElementById('mgr-month-label');
+  if (el) el.textContent = mgrMonthLabel();
+  loadAllRes();
+  renderMgrSettleList();
+}
+
+function showMgrMainTab(tab) {
+  _mgrMainTab = tab;
+  document.querySelectorAll('.auth-tab[id^="mgr-tab"]').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('[id^="mgr-panel"]').forEach(p => p.classList.remove('active'));
+  document.getElementById('mgr-tab-' + tab + '-btn').classList.add('active');
+  document.getElementById('mgr-panel-' + tab).classList.add('active');
+  if (tab === 'settle') renderMgrSettleList();
+}
+
+// 해당 월의 예약만 필터
+function filterByMonth(rows) {
+  return rows.filter(function(r) {
+    var d = r['방문날짜'] || r['생성일'] || '';
+    if (!d) return false;
+    var parts = d.split('-');
+    return parseInt(parts[0]) === _mgrYear && parseInt(parts[1]) === _mgrMonth;
+  });
+}
+
 async function loadAllRes() {
   load(true);
   try {
-    const res = await api('getReservations', allFilter ? { status: allFilter } : {});
-    allRes = (res.data || []).sort(function(a,b){ var na=parseInt((a['예약ID']||'').replace(/\D/g,'')); var nb=parseInt((b['예약ID']||'').replace(/\D/g,'')); return nb-na; });
+    var el = document.getElementById('mgr-month-label');
+    if (el) el.textContent = mgrMonthLabel();
+    const res = await api('getReservations', {});
+    allRes = (res.data || []).sort(function(a,b){
+      var na=parseInt((a['예약ID']||'').replace(/\D/g,'')||0);
+      var nb=parseInt((b['예약ID']||'').replace(/\D/g,'')||0);
+      return nb-na;
+    });
     renderAllRes();
+    renderMgrStats();
   } finally { load(false); }
 }
 
@@ -2668,24 +2751,159 @@ function setAllFilter(f, el) {
 }
 
 function renderAllRes() {
-  const rows = allFilter ? allRes.filter(r => r['상태'] === allFilter) : allRes;
-  document.getElementById('all-list').innerHTML = rows.length ? rows.map(r => ('\n    <div class="li">\n      <div class="li-head">\n        <div>\n          <div class="li-id">'+(r['예약ID'])+'</div>\n          <div class="li-name">'+(r['이름'])+' <span class="tag">'+(r['국가'])+'</span></div>\n          <div class="li-sub">'+(r['약국명'])+' · '+(fmtDateTime(r['방문날짜'],r['방문시간']))+'</div>\n          <div class="li-sub">'+(r['플랫폼'])+' · '+(fmtN(r['팔로워']))+' · '+(r['방문인원'])+'</div>\n          <div class="li-sub">'+(r['제품명'])+'</div>\n        </div>\n        <div style="text-align:right;flex-shrink:0">\n          '+(badge(r['상태']))+'\n          <div style="font-size:11px;color:var(--muted);margin-top:4px">'+(r['생성일']||'')+'</div>\n        </div>\n      </div>\n      '+(r['사유'] ? ('<div style="font-size:12px;color:var(--red);margin-top:6px;padding-top:6px;border-top:1px solid var(--gray)">'+T('reason')+': '+(r['사유'])+'</div>') : '')+'\n    </div>')).join('') : '<div class="empty">'+ T('no_res') +'</div>';
+  var monthly = filterByMonth(allRes);
+  const rows = allFilter ? monthly.filter(r => r['상태'] === allFilter) : monthly;
+  document.getElementById('all-list').innerHTML = rows.length ? rows.map(r => (
+    '<div class="li">'
+    + '<div class="li-head">'
+    + '<div>'
+    + '<div class="li-id">' + r['예약ID'] + '</div>'
+    + '<div class="li-name">' + r['이름'] + ' <span class="tag">' + r['국가'] + '</span></div>'
+    + '<div class="li-sub">' + r['약국명'] + ' · ' + fmtDateTime(r['방문날짜'],r['방문시간']) + '</div>'
+    + '<div class="li-sub">' + r['플랫폼'] + ' · ' + fmtN(r['팔로워']) + ' · ' + r['방문인원'] + '</div>'
+    + '<div class="li-sub">' + r['제품명'] + '</div>'
+    + '</div>'
+    + '<div style="text-align:right;flex-shrink:0">'
+    + badge(r['상태'])
+    + '<div style="font-size:11px;color:var(--muted);margin-top:4px">' + (r['생성일']||'') + '</div>'
+    + '</div></div>'
+    + (r['사유'] ? '<div style="font-size:12px;color:var(--red);margin-top:6px;padding-top:6px;border-top:1px solid var(--gray)">사유: ' + r['사유'] + '</div>' : '')
+    + '</div>'
+  )).join('') : '<div class="empty">이 달 예약이 없습니다</div>';
+}
+
+function renderMgrStats() {
+  var monthly = filterByMonth(allRes);
+  var c = function(s) { return monthly.filter(function(r){ return r['상태']===s; }).length; };
+  var el = document.getElementById('mgr-stat-grid');
+  if (!el) return;
+  el.innerHTML = [
+    ['이달 전체', monthly.length, ''],
+    ['승인대기',  c('승인대기'),  'var(--blue)'],
+    ['방문완료',  c('방문완료'),  'var(--green)'],
+    ['노쇼',      c('노쇼'),      'var(--red)'],
+  ].map(function(item) {
+    return '<div class="stat-card"><div class="stat-label">' + item[0] + '</div>'
+      + '<div class="stat-val" style="color:' + (item[2]||'var(--text)') + '">' + item[1] + '</div></div>';
+  }).join('');
+}
+
+// ── 정산 관리 ──────────────────────────────────────────────────
+function renderMgrSettleList() {
+  // 방문완료 건만 약국별로 그룹핑
+  var monthly = filterByMonth(allRes).filter(function(r) {
+    return r['상태'] === '방문완료';
+  });
+
+  // 정산완료 상태는 별도 필드 '정산' 확인 (없으면 미정산)
+  var settled   = monthly.filter(function(r){ return r['정산'] === '완료'; });
+  var unsettled = monthly.filter(function(r){ return r['정산'] !== '완료'; });
+
+  // 요약 통계
+  var statEl = document.getElementById('settle-stat-grid');
+  if (statEl) {
+    statEl.innerHTML = [
+      ['방문완료',   monthly.length,   'var(--green)'],
+      ['미정산',     unsettled.length, 'var(--red)'],
+      ['정산완료',   settled.length,   'var(--muted)'],
+    ].map(function(item) {
+      return '<div class="stat-card"><div class="stat-label">' + item[0] + '</div>'
+        + '<div class="stat-val" style="color:' + item[1] + '">' + item[2] + '</div></div>';
+    }).join('');
+  }
+
+  if (!monthly.length) {
+    document.getElementById('settle-list').innerHTML = '<div class="empty">이 달 방문완료 건이 없습니다</div>';
+    return;
+  }
+
+  // 약국별 그룹핑
+  var groups = {};
+  monthly.forEach(function(r) {
+    var ph = r['약국명'] || '미상';
+    if (!groups[ph]) groups[ph] = { ph: ph, rows: [] };
+    groups[ph].rows.push(r);
+  });
+
+  document.getElementById('settle-list').innerHTML = Object.values(groups).map(function(g) {
+    var totalQty = g.rows.reduce(function(sum, r) {
+      var prod = products.find(function(p){ return p['제품ID']===r['제품ID']; });
+      var qty  = prod ? parseInt(prod['증정수량']||0) : 0;
+      var party = parseInt((r['방문인원']||'1명').replace(/\D/g,'')) || 1;
+      return sum + qty * party;
+    }, 0);
+    var allSettled = g.rows.every(function(r){ return r['정산']==='완료'; });
+    var someSettled = g.rows.some(function(r){ return r['정산']==='완료'; });
+
+    var rowsHtml = g.rows.map(function(r) {
+      var prod = products.find(function(p){ return p['제품ID']===r['제품ID']; });
+      var qty  = prod ? parseInt(prod['증정수량']||0) : 0;
+      var party = parseInt((r['방문인원']||'1명').replace(/\D/g,'')) || 1;
+      var isSettled = r['정산'] === '완료';
+      return '<div style="display:flex;justify-content:space-between;align-items:center;'
+        + 'padding:10px 0;border-bottom:1px solid var(--gray);gap:8px">'
+        + '<div style="flex:1;min-width:0">'
+        + '<div style="font-size:13px;font-weight:700">' + r['이름'] + ' <span class="tag">' + r['국가'] + '</span></div>'
+        + '<div style="font-size:12px;color:var(--muted);margin-top:2px">'
+        + fmtDate(r['방문날짜']) + ' · ' + r['제품명'] + ' × ' + qty + '개 × ' + party + '명'
+        + '</div></div>'
+        + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">'
+        + (isSettled
+          ? '<span style="font-size:11px;font-weight:700;color:var(--muted);background:var(--gray);padding:3px 8px;border-radius:100px">정산완료</span>'
+          : '<button onclick="settleOne(\'' + r['예약ID'] + '\')" class="btn btn-ghost btn-sm" style="font-size:12px;color:var(--green);border-color:var(--green);min-height:32px;padding:0 10px">정산</button>')
+        + '</div></div>';
+    }).join('');
+
+    return '<div class="card" style="padding:0;overflow:hidden;margin-bottom:10px">'
+      + '<div style="padding:12px 16px;background:var(--gray);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'
+      + '<div>'
+      + '<div style="font-size:14px;font-weight:800">' + g.ph + '</div>'
+      + '<div style="font-size:12px;color:var(--muted);margin-top:2px">방문 ' + g.rows.length + '건 · 총 증정 ' + totalQty + '개</div>'
+      + '</div>'
+      + (!allSettled
+        ? '<button onclick="settleAll(\'' + g.ph + '\')" class="btn btn-success btn-sm" style="font-size:12px;min-height:34px;padding:0 12px;width:auto">전체 정산완료</button>'
+        : '<span style="font-size:12px;font-weight:700;color:var(--green)">✓ 정산완료</span>')
+      + '</div>'
+      + '<div style="padding:0 16px">' + rowsHtml + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+async function settleOne(id) {
+  if (!confirm('이 건을 정산완료 처리하시겠습니까?')) return;
+  load(true);
+  try {
+    const res = await api('settleReservation', { id: id });
+    if (!res.ok) throw new Error(res.error);
+    var r = allRes.find(function(x){ return x['예약ID']===id; });
+    if (r) r['정산'] = '완료';
+    renderMgrSettleList();
+    renderMgrStats();
+    showToast('정산완료 처리되었습니다', 'ok');
+  } catch(e) { alert('오류: ' + e.message); }
+  finally { load(false); }
+}
+
+async function settleAll(phName) {
+  if (!confirm(phName + '\n이 약국의 모든 방문완료 건을 정산완료 처리하시겠습니까?')) return;
+  load(true);
+  try {
+    var targets = filterByMonth(allRes).filter(function(r){
+      return r['상태']==='방문완료' && r['약국명']===phName && r['정산']!=='완료';
+    });
+    for (var i = 0; i < targets.length; i++) {
+      await api('settleReservation', { id: targets[i]['예약ID'] });
+      targets[i]['정산'] = '완료';
+    }
+    renderMgrSettleList();
+    renderMgrStats();
+    showToast(phName + ' 전체 정산완료', 'ok');
+  } catch(e) { alert('오류: ' + e.message); }
+  finally { load(false); }
 }
 
 async function loadMgrStats() {
-  try {
-    const res = await api('getReservations', {});
-    const data = res.data || [];
-    const c = s => data.filter(r => r['상태'] === s).length;
-    const el = document.getElementById('mgr-stat-grid');
-    if (!el) return;
-    el.innerHTML = [
-      ['전체', data.length, ''],
-      ['승인대기', c('승인대기'), 'var(--blue)'],
-      ['방문완료', c('방문완료'), 'var(--green)'],
-      ['노쇼', c('노쇼'), 'var(--red)'],
-    ].map(([l,v,c]) => ('\n      <div class="stat-card">\n        <div class="stat-label">'+(l)+'</div>\n        <div class="stat-val" style="color:'+(c||'var(--text)')+'">'+(v)+'</div>\n      </div>')).join('');
-  } catch(e) {}
+  // loadAllRes에서 통합 처리
 }
 
 // ════════════════════════════════════════════════════════════
