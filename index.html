@@ -27,8 +27,8 @@ body { width:100% !important; overflow-x:hidden !important; }
   --sat: env(safe-area-inset-top, 0px);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html{height:100%}
-body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--gray);color:var(--text);font-size:15px}
+html{min-height:100%}
+body{min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--gray);color:var(--text);font-size:15px}
 /* 메인앱: overflow hidden, 로그인: 스크롤 가능 */
 #main-app{overflow:hidden}
 #login-screen{overflow-y:auto;-webkit-overflow-scrolling:touch}
@@ -162,7 +162,7 @@ input[readonly]{background:var(--gray);color:var(--muted)}
 .chip.active{background:var(--blue);color:#fff;border-color:var(--blue)}
 
 /* Login */
-.login-wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;padding-top:max(24px, calc(env(safe-area-inset-top,0px) + 24px));padding-bottom:max(24px, calc(env(safe-area-inset-bottom,0px) + 24px));background:var(--gray)}
+.login-wrap{flex:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;padding-top:max(24px, calc(env(safe-area-inset-top,0px) + 24px));padding-bottom:max(24px, calc(env(safe-area-inset-bottom,0px) + 24px));background:var(--gray)}
 .login-box{background:var(--white);border-radius:16px;border:1px solid var(--border);padding:28px 24px;width:100%;max-width:400px}
 .login-logo{text-align:center;margin-bottom:10px}
 .login-title{font-size:20px;font-weight:800;text-align:center;margin-bottom:4px}
@@ -233,25 +233,33 @@ input[readonly]{background:var(--gray);color:var(--muted)}
 </div>
 
 <!-- ══ 로그인 ══════════════════════════════════════════════ -->
-<div id="login-screen" style="min-height:100vh;overflow-y:auto;-webkit-overflow-scrolling:touch">
+<div id="login-screen" style="min-height:100vh;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--gray);display:flex;flex-direction:column">
   <div class="login-wrap">
     <div class="login-box">
       <div class="login-logo">
-        <svg width="72" height="72" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto">
-          <rect width="72" height="72" rx="16" fill="#2B7CFF"/>
-          <clipPath id="pc"><rect x="13" y="27" width="46" height="18" rx="9"/></clipPath>
-          <rect x="13" y="27" width="23" height="18" rx="0" fill="#ffffff" opacity="0.95" clip-path="url(#pc)"/>
-          <rect x="36" y="27" width="23" height="18" rx="0" fill="#ffffff" opacity="0.3" clip-path="url(#pc)"/>
-          <rect x="13" y="27" width="46" height="18" rx="9" fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.5"/>
-          <line x1="36" y1="29" x2="36" y2="43" stroke="#ffffff" stroke-width="1" opacity="0.4"/>
-          <line x1="53" y1="16" x2="53" y2="24" stroke="#FFD166" stroke-width="2" stroke-linecap="round"/>
-          <line x1="49" y1="20" x2="57" y2="20" stroke="#FFD166" stroke-width="2" stroke-linecap="round"/>
-          <line x1="47" y1="14" x2="50" y2="17" stroke="#FFD166" stroke-width="1.5" stroke-linecap="round"/>
-          <line x1="57" y1="14" x2="54" y2="17" stroke="#FFD166" stroke-width="1.5" stroke-linecap="round"/>
-          <line x1="18" y1="55" x2="18" y2="60" stroke="#FFD166" stroke-width="1.8" stroke-linecap="round"/>
-          <line x1="15.5" y1="57.5" x2="20.5" y2="57.5" stroke="#FFD166" stroke-width="1.8" stroke-linecap="round"/>
-          <circle cx="58" cy="54" r="2.5" fill="#FFD166"/>
-          <circle cx="52" cy="58" r="1.5" fill="#FFD166" opacity="0.7"/>
+        <svg width="80" height="80" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto;border-radius:18px">
+          <!-- 배경 -->
+          <rect width="512" height="512" rx="110" fill="#2B7CFF"/>
+          <!-- 알약 왼쪽 흰색 -->
+          <clipPath id="lpc"><rect x="97" y="197" width="318" height="118" rx="59"/></clipPath>
+          <rect x="97" y="197" width="159" height="118" fill="#FFFFFF" clip-path="url(#lpc)"/>
+          <!-- 알약 오른쪽 반투명 -->
+          <rect x="256" y="197" width="159" height="118" fill="#FFFFFF" opacity="0.35" clip-path="url(#lpc)"/>
+          <!-- 알약 외곽선 -->
+          <rect x="97" y="197" width="318" height="118" rx="59" fill="none" stroke="#FFFFFF" stroke-width="3" opacity="0.4"/>
+          <!-- 중앙 구분선 -->
+          <line x1="256" y1="207" x2="256" y2="305" stroke="#FFFFFF" stroke-width="3" opacity="0.35"/>
+          <!-- 별1 우상단 -->
+          <line x1="392" y1="100" x2="392" y2="148" stroke="#FFD166" stroke-width="10" stroke-linecap="round"/>
+          <line x1="368" y1="124" x2="416" y2="124" stroke="#FFD166" stroke-width="10" stroke-linecap="round"/>
+          <line x1="375" y1="107" x2="409" y2="141" stroke="#FFD166" stroke-width="6" stroke-linecap="round"/>
+          <line x1="409" y1="107" x2="375" y2="141" stroke="#FFD166" stroke-width="6" stroke-linecap="round"/>
+          <!-- 별2 좌하단 -->
+          <line x1="136" y1="362" x2="136" y2="392" stroke="#FFD166" stroke-width="7" stroke-linecap="round"/>
+          <line x1="121" y1="377" x2="151" y2="377" stroke="#FFD166" stroke-width="7" stroke-linecap="round"/>
+          <!-- 점들 우하단 -->
+          <circle cx="412" cy="381" r="13" fill="#FFD166"/>
+          <circle cx="381" cy="398" r="8" fill="#FFD166" opacity="0.7"/>
         </svg>
       </div>
       <div class="login-title" id="login-title">PharmVisit</div>
@@ -391,16 +399,14 @@ input[readonly]{background:var(--gray);color:var(--muted)}
 <div id="main-app" class="app" style="display:none">
   <div class="header">
     <div class="header-title" id="app-title" style="display:flex;align-items:center;gap:7px">
-      <svg width="28" height="28" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
-        <rect width="72" height="72" rx="16" fill="#2B7CFF"/>
-        <clipPath id="ph"><rect x="13" y="27" width="46" height="18" rx="9"/></clipPath>
-        <rect x="13" y="27" width="23" height="18" fill="#fff" opacity="0.95" clip-path="url(#ph)"/>
-        <rect x="36" y="27" width="23" height="18" fill="#fff" opacity="0.3" clip-path="url(#ph)"/>
-        <rect x="13" y="27" width="46" height="18" rx="9" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.5"/>
-        <line x1="36" y1="29" x2="36" y2="43" stroke="#fff" stroke-width="1" opacity="0.4"/>
-        <line x1="53" y1="16" x2="53" y2="24" stroke="#FFD166" stroke-width="2.5" stroke-linecap="round"/>
-        <line x1="49" y1="20" x2="57" y2="20" stroke="#FFD166" stroke-width="2.5" stroke-linecap="round"/>
-        <circle cx="58" cy="54" r="2.5" fill="#FFD166"/>
+      <svg width="28" height="28" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;border-radius:7px">
+        <rect width="512" height="512" rx="110" fill="#2B7CFF"/>
+        <clipPath id="hpc"><rect x="97" y="197" width="318" height="118" rx="59"/></clipPath>
+        <rect x="97" y="197" width="159" height="118" fill="#fff" clip-path="url(#hpc)"/>
+        <rect x="256" y="197" width="159" height="118" fill="#fff" opacity="0.35" clip-path="url(#hpc)"/>
+        <line x1="392" y1="100" x2="392" y2="148" stroke="#FFD166" stroke-width="10" stroke-linecap="round"/>
+        <line x1="368" y1="124" x2="416" y2="124" stroke="#FFD166" stroke-width="10" stroke-linecap="round"/>
+        <circle cx="412" cy="381" r="13" fill="#FFD166"/>
       </svg>
       PharmVisit
     </div>
@@ -880,7 +886,7 @@ let loginLang = 'ko'; // 로그인 화면 선택 언어 (기본: 한국어)
 // ── i18n ──────────────────────────────────────────────────────
 const I18N = {
   ko: {
-    'login-title':'약국 예약 시스템','login-sub':'로그인하여 계속하세요',
+    'login-title':'PharmVisit','login-sub':'로그인하여 계속하세요',
     'lbl-email':'이메일','lbl-pw':'비밀번호','lbl-logout':'로그아웃',
     'login-btn':'로그인','tab-login-btn':'로그인','tab-signup-btn':'회원가입','signup-btn':'가입하기',
     'lbl-s-name':'이름','lbl-s-email':'이메일','lbl-s-pw':'비밀번호','lbl-s-pw2':'비밀번호 확인',
@@ -905,7 +911,7 @@ const I18N = {
             '방문완료':'방문 완료','노쇼':'노쇼','취소':'취소'},
   },
   en: {
-    'login-title':'Pharmacy Reservation','login-sub':'Sign in to continue',
+    'login-title':'PharmVisit','login-sub':'Sign in to continue',
     'lbl-email':'Email','lbl-pw':'Password','lbl-logout':'Logout',
     'login-btn':'Sign in','tab-login-btn':'Sign in','tab-signup-btn':'Sign up','signup-btn':'Create account',
     'lbl-s-name':'Name','lbl-s-email':'Email','lbl-s-pw':'Password','lbl-s-pw2':'Confirm password',
@@ -930,7 +936,7 @@ const I18N = {
             '방문완료':'Visited','노쇼':'No-Show','취소':'Cancelled'},
   },
   ja: {
-    'login-title':'薬局予約システム','login-sub':'サインインしてください',
+    'login-title':'PharmVisit','login-sub':'サインインしてください',
     'lbl-email':'メールアドレス','lbl-pw':'パスワード','lbl-logout':'ログアウト',
     'login-btn':'ログイン','tab-login-btn':'ログイン','tab-signup-btn':'新規登録','signup-btn':'登録する',
     'lbl-s-name':'お名前','lbl-s-email':'メールアドレス','lbl-s-pw':'パスワード','lbl-s-pw2':'パスワード確認',
@@ -955,7 +961,7 @@ const I18N = {
             '방문완료':'訪問完了','노쇼':'ノーショー','취소':'キャンセル'},
   },
   zh: {
-    'login-title':'药局预约系统','login-sub':'请登录',
+    'login-title':'PharmVisit','login-sub':'请登录',
     'lbl-email':'邮箱','lbl-pw':'密码','lbl-logout':'退出',
     'login-btn':'登录','tab-login-btn':'登录','tab-signup-btn':'注册','signup-btn':'立即注册',
     'lbl-s-name':'姓名','lbl-s-email':'邮箱','lbl-s-pw':'密码','lbl-s-pw2':'确认密码',
