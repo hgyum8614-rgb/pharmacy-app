@@ -1237,11 +1237,17 @@ function applyTranslationsToData() {
 
 async function api(action, params = {}) {
   if (USE_FETCH) {
-    // Apps Script CORS 우회 — GET 방식으로 호출
+    // Apps Script GET 방식 호출 (CORS 우회)
     var payload = encodeURIComponent(JSON.stringify({action: action, params: params}));
     var url = WEB_APP_URL + '?payload=' + payload;
-    const r = await fetch(url, { method: 'GET', redirect: 'follow' });
-    return r.json();
+    const r = await fetch(url, {
+      method: 'GET',
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain' }
+    });
+    const text = await r.text();
+    try { return JSON.parse(text); }
+    catch(e) { throw new Error('Response parse error: ' + text.slice(0,200)); }
   }
   // google.script.run 안전 체크
   if (typeof google === 'undefined' || !google.script || !google.script.run) {
@@ -1272,7 +1278,7 @@ async function doLogin() {
     currentUser = res.data;
     saveSession(currentUser);
     initApp();
-  } catch(e) { showLoginAlert('Connection error. Please try again.'); }
+  } catch(e) { showLoginAlert('Connection error: ' + e.message); }
   finally {
     btn.disabled = false;
     btn.textContent = (I18N[loginLang]||I18N.en)['login-btn'] || '로그인';
